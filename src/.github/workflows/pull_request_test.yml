@@ -1,0 +1,16 @@
+name: build test
+
+on: pull_request
+
+jobs:
+  test:
+    name: build test
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: build
+        run: cargo build --release --all-features
