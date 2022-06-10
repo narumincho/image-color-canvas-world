@@ -6,8 +6,7 @@ on:
       - main
 
 env:
-  PROJECT_ID: image-color-canvas-world
-  IMAGE: gcr.io/${{ env.PROJECT_ID }}/sandbox:${{ github.sha }}
+  IMAGE: gcr.io/image-color-canvas-world/sandbox:${{ github.sha }}
 
 jobs:
   deploy:
@@ -35,7 +34,7 @@ jobs:
         run: |
           gcloud run deploy sandbox \
             --image $IMAGE \
-            --project $PROJECT_ID \
+            --project image-color-canvas-world \
             --region us-central1 \
             --allow-unauthenticated \
             --platform managed
