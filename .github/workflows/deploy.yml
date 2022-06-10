@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  IMAGE: gcr.io/image-color-canvas-world/sandbox:${{ github.sha }}
+  IMAGE: gcr.io/image-color-canvas-world/main:${{ github.sha }}
 
 jobs:
   deploy:
@@ -32,7 +32,7 @@ jobs:
         run: docker push $IMAGE
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy sandbox \
+          gcloud run deploy main \
             --image $IMAGE \
             --project image-color-canvas-world \
             --region us-central1 \
