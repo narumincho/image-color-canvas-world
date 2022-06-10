@@ -20,10 +20,12 @@ jobs:
           toolchain: stable
       - name: build
         run: cargo build --release --all-features
-      - name: GCP Authenticate
-        uses: google-github-actions/setup-gcloud@v0
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v0
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      - name: setup-gcloud
+        uses: google-github-actions/setup-gcloud@v0
       - name: Configure docker to use the gcloud cli
         run: gcloud auth configure-docker
       - name: Build a docker image
