@@ -114,3 +114,7 @@
     flex-direction: column;
   }
 }
+
+.bg {
+  background: orange;
+}
