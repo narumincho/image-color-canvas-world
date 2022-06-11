@@ -9,3 +9,5 @@ tokio = { version = "1.19.2", features = ["full"] }
 http = "0.2.8"
 uuid = { version = "1.1.1", features = ["v4"] }
 chrono = "0.4.19"
+firestore-db-and-auth = "0.6.1"
+serde = "1.0.137"

@@ -1,3 +1,11 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+struct MyDTD {
+    count: i32,
+    on: Option<bool>,
+}
+
 async fn hello_world(
     _req: http::Request<hyper::Body>,
 ) -> http::Result<hyper::Response<hyper::Body>> {
@@ -46,6 +54,8 @@ async fn main() {
 
     let server = hyper::Server::bind(&address).serve(make_svc);
     println!("サーバーを起動できた http://localhost:{}", port_number);
+    save_to_database();
+
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
     }
@@ -69,4 +79,24 @@ fn get_port_number_from_env_variable() -> u16 {
             DEFAULT_PORT_NUMBER
         }
     }
+}
+
+fn save_to_database() {
+    let session = get_session();
+    firestore_db_and_auth::documents::write(
+        &session,
+        "aaa",
+        None::<String>,
+        &(MyDTD {
+            count: 28,
+            on: Some(true),
+        }),
+        firestore_db_and_auth::documents::WriteOptions { merge: false },
+    )
+    .unwrap();
+}
+
+fn get_session() -> firestore_db_and_auth::sessions::service_account::Session {
+    let credentials = firestore_db_and_auth::Credentials::from_file("./src/key.json").unwrap();
+    firestore_db_and_auth::ServiceSession::new(credentials).unwrap()
 }
