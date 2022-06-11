@@ -2,26 +2,23 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
-import { useEffect } from "react";
+import React from "react";
 
 const Home: NextPage = () => {
-  useEffect(() => {
+  const [beforeGetTime, setBeforeGetTime] = React.useState<Date | undefined>(
+    undefined
+  );
+
+  React.useEffect(() => {
     fetch("api/hello")
       .then((res) => res.json())
       .then((data) => {
         console.log("image", data);
       });
 
-    const loop = () => {
-      const nowTime = new Date().getTime();
-      const sec = Math.floor(nowTime / 1000);
-
-      if (sec % 10 === 0) {
-        console.log("10秒に一回する処理!");
-      }
-      requestAnimationFrame(loop);
-    };
-    loop();
+    setInterval(() => {
+      console.log("10秒に一回する処理!");
+    }, 10000);
   }, []);
 
   return (
