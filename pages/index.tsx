@@ -7,24 +7,42 @@ import * as app from "firebase/app";
 import * as firestore from "firebase/firestore";
 import * as storage from "firebase/storage";
 
-const Home: NextPage = () => {
-  const [beforeGetTime, setBeforeGetTime] = React.useState<Date | undefined>(
-    undefined
-  );
-
-  React.useEffect(() => {
+const initialize =
+  (
+    setFileNameList: (fileNameList: ReadonlyArray<string>) => void,
+    storageInstance: storage.FirebaseStorage
+  ) =>
+  () => {
     const storageInstance = storage.getStorage(app.initializeApp({}));
     const ref = storage.ref(storageInstance, "images");
 
-    storage.uploadString(ref, "ok?");
-    storage.listAll(ref).then(() => {
-      console.log("一覧を取得できた");
+    storage.listAll(ref).then((k) => {
+      console.log(
+        "一覧を取得できた",
+        setFileNameList(k.items.map((l) => l.name))
+      );
     });
 
     setInterval(() => {
+      storage.uploadString(
+        storage.ref(storageInstance, "images/sample"),
+        "okkkk?"
+      );
       console.log("10秒に一回する処理!");
     }, 10000);
-  }, []);
+  };
+
+const Home: NextPage = () => {
+  const [fileNameList, setFileNameList] = React.useState<ReadonlyArray<string>>(
+    []
+  );
+  const [storageInstance] = React.useState<storage.FirebaseStorage>(() =>
+    storage.getStorage(app.initializeApp({}))
+  );
+
+  React.useEffect(() => {
+    initialize(setFileNameList, storageInstance);
+  }, [storageInstance]);
 
   return (
     <div className={styles.container}>
@@ -34,6 +52,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <StyledDiv>背景色 オレンジになったかな</StyledDiv>
+      <div>ファイル名たち{JSON.stringify(setFileNameList)}</div>
 
       <main className={styles.main}>
         <h1 className={styles.title}>
