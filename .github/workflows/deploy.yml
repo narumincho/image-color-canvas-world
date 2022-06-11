@@ -5,9 +5,6 @@ on:
     branches:
       - main
 
-env:
-  IMAGE: gcr.io/image-color-canvas-world/main:${{ github.sha }}
-
 jobs:
   deploy:
     name: deploy
@@ -15,28 +12,14 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: setup Node.js
+        uses: actions/setup-node@v2
         with:
-          toolchain: stable
-      - name: build
-        run: cargo build --release --all-features
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v0
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-      - name: setup-gcloud
-        uses: google-github-actions/setup-gcloud@v0
-      - name: Configure docker to use the gcloud cli
-        run: gcloud auth configure-docker
-      - name: Build a docker image
-        run: docker build . -t $IMAGE
-      - name: Push the docker image
-        run: docker push $IMAGE
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy main \
-            --image $IMAGE \
-            --project image-color-canvas-world \
-            --region us-central1 \
-            --allow-unauthenticated \
-            --platform managed
+          node-version: "16"
+      - name: Install npm dependencies (npm ci)
+        run: npm ci
+      - run: npx next lint
+      - run: npx next build
+      - run: npx next export
+      - name: Deploy to Firebase
+        run: npx firebase deploy --config ./distribution/definy/firebase.json --project image-color-canvas-world --token ${{ secrets.FIREBASE_TOKEN }}
