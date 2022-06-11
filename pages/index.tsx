@@ -3,6 +3,9 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import React from "react";
+import * as app from "firebase/app";
+import * as firestore from "firebase/firestore";
+import * as storage from "firebase/storage";
 
 const Home: NextPage = () => {
   const [beforeGetTime, setBeforeGetTime] = React.useState<Date | undefined>(
@@ -10,11 +13,13 @@ const Home: NextPage = () => {
   );
 
   React.useEffect(() => {
-    fetch("api/hello")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("image", data);
-      });
+    const storageInstance = storage.getStorage(app.initializeApp({}));
+    const ref = storage.ref(storageInstance, "images");
+
+    storage.uploadString(ref, "ok?");
+    storage.listAll(ref).then(() => {
+      console.log("一覧を取得できた");
+    });
 
     setInterval(() => {
       console.log("10秒に一回する処理!");

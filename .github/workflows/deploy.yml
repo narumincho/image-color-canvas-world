@@ -22,4 +22,4 @@ jobs:
       - run: npx next build
       - run: npx next export
       - name: Deploy to Firebase
-        run: npx firebase deploy --config ./distribution/definy/firebase.json --project image-color-canvas-world --token ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy --project image-color-canvas-world --token ${{ secrets.FIREBASE_TOKEN }}
