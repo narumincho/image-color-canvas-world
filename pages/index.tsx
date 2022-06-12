@@ -5,10 +5,11 @@ import styles from "../styles/Home.module.css";
 import React from "react";
 import * as app from "firebase/app";
 import * as storage from "firebase/storage";
-import targetImage from "../public/woodHouse.png";
 
 const initialize = async (
-  setFileUrlList: (newUrlList: ReadonlyArray<URL>) => void,
+  setFileUrlList: (
+    newUrlList: ReadonlyArray<{ readonly url: URL; readonly color: string }>
+  ) => void,
   storageInstance: storage.FirebaseStorage
 ): Promise<void> => {
   const ref = storage.ref(storageInstance, "images");
@@ -16,7 +17,14 @@ const initialize = async (
   const loop = async (): Promise<void> => {
     const urlList = await getFileList(storageInstance);
 
-    setFileUrlList(urlList);
+    setFileUrlList(
+      await Promise.all(
+        urlList.map(async (url) => ({
+          color: await getImageMainColor(url.toString()),
+          url: url,
+        }))
+      )
+    );
 
     console.log("10秒に一回する処理!", urlList);
   };
@@ -34,35 +42,38 @@ const getFileList = async (
   const k = await storage.listAll(ref);
   return await Promise.all(
     k.items.map(async (l) => {
-      const url = await storage.getDownloadURL(
-        storage.ref(storageInstance, l.fullPath)
+      return new URL(
+        `https://storage.googleapis.com/download/storage/v1/b/image-color-canvas-world.appspot.com/o/${encodeURIComponent(
+          l.fullPath
+        )}?alt=media`
       );
-      return new URL(url);
     })
   );
 };
 
-const imageColor = (url: string): void => {
-  const image = new Image();
-  image.onload = () => {
-    console.log("画像を読み込めました", image);
-    const canvasElement = document.createElement("canvas");
-    canvasElement.width = image.width;
-    canvasElement.height = image.height;
-    const context = canvasElement.getContext("2d") as CanvasRenderingContext2D;
+const getImageMainColor = (url: string): Promise<string> =>
+  new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      console.log("画像を読み込めました", image);
+      const canvasElement = document.createElement("canvas");
+      canvasElement.width = image.width;
+      canvasElement.height = image.height;
+      const context = canvasElement.getContext(
+        "2d"
+      ) as CanvasRenderingContext2D;
 
-    context.drawImage(image, 0, 0);
-    const imageData = context.getImageData(0, 0, image.width, image.height);
-    const mainHue = imageDataGetModeHue(imageData);
-    document.body.style.backgroundColor = `hsl(${mainHue}, 80%, ${Math.floor(
-      imageDataGetModeLight(imageData) * 100
-    )}%)`;
-    console.log({ mainHue });
-    canvasElement.style.width = "256px";
-    document.body.append(canvasElement);
-  };
-  image.src = url;
-};
+      context.drawImage(image, 0, 0);
+      const imageData = context.getImageData(0, 0, image.width, image.height);
+      const mainHue = imageDataGetModeHue(imageData);
+      resolve(
+        `hsl(${mainHue}, 80%, ${Math.floor(
+          imageDataGetModeLight(imageData) * 100
+        )}%)`
+      );
+    };
+    image.src = url;
+  });
 
 const imageDataGetModeColor = (imageData: ImageData): string => {
   const map = new Map<string, number>();
@@ -256,10 +267,11 @@ const result: ReadonlyArray<{
 ];
 
 const Home: NextPage = () => {
-  const [fileNameUrl, setFileUrlList] = React.useState<ReadonlyArray<URL>>([]);
+  const [fileNameUrl, setFileUrlList] = React.useState<
+    ReadonlyArray<{ readonly url: URL; readonly color: string }>
+  >([]);
   const [storageInstance] = React.useState<storage.FirebaseStorage | undefined>(
     () => {
-      return;
       try {
         return storage.getStorage(
           app.initializeApp({
@@ -283,10 +295,6 @@ const Home: NextPage = () => {
     }
   }, [storageInstance]);
 
-  React.useEffect(() => {
-    imageColor(targetImage.src);
-  }, []);
-
   return (
     <div className={styles.container}>
       <Head>
@@ -295,8 +303,13 @@ const Home: NextPage = () => {
       </Head>
       <StyledDiv>背景色 オレンジになったかな</StyledDiv>
       <div>ファイル名たち{JSON.stringify(fileNameUrl)}</div>
-      {fileNameUrl.map((url) => (
-        <img key={url.toString()} src={url.toString()} alt="" />
+      {fileNameUrl.map((urlAndColor) => (
+        <div
+          key={urlAndColor.url.toString()}
+          style={{ backgroundColor: urlAndColor.color, padding: 8 }}
+        >
+          <img src={urlAndColor.url.toString()} alt="" />
+        </div>
       ))}
     </div>
   );
