@@ -1,4 +1,12 @@
-import { For, JSX, Show, createSignal } from "solid-js";
+import {
+  Accessor,
+  Component,
+  For,
+  JSX,
+  Setter,
+  Show,
+  createSignal,
+} from "solid-js";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -7,8 +15,27 @@ type ImageColorAndUrlData = {
   readonly heightPerWidth: number;
 };
 
+const appDomId = "image-color-canvas-world-app";
+
+const handleResizeApp = (setAppHeightPerWidth: Setter<{ v: number }>) => {
+  const resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      setAppHeightPerWidth({
+        v: entry.target.clientHeight / entry.target.clientWidth,
+      });
+    }
+  });
+  const appDomElement = document.getElementById(appDomId);
+  if (appDomElement !== null) {
+    resizeObserver.observe(appDomElement);
+    return;
+  }
+  console.log("domから取得できず");
+};
+
 const initialize = (
-  setFileUrlList: (newUrlList: ReadonlyArray<ImageColorAndUrlData>) => void
+  setFileUrlList: Setter<ReadonlyArray<ImageColorAndUrlData>>,
+  setAppHeightPerWidth: Setter<{ readonly v: number }>
 ): (() => void) => {
   const getFiles = async (): Promise<void> => {
     const urlList = await getFileList();
@@ -25,6 +52,9 @@ const initialize = (
   };
   setInterval(getFiles, 10000);
   getFiles();
+  setTimeout(() => {
+    handleResizeApp(setAppHeightPerWidth);
+  }, 0);
 
   console.log("初期化しました");
 
@@ -200,8 +230,11 @@ export const App = (): JSX.Element => {
   const [uploadingState, setUploadingState] = createSignal<UploadingState>({
     type: "none",
   });
+  const [appHeightPerWidth, setAppHeightPerWidth] = createSignal<{
+    readonly v: number;
+  }>({ v: 1 });
 
-  const getFiles = initialize(setFileUrlList);
+  const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
 
   const onInputFile: JSX.DOMAttributes<HTMLInputElement>["onInput"] = (e) => {
     const files = e.currentTarget.files;
@@ -246,14 +279,18 @@ export const App = (): JSX.Element => {
   };
 
   return (
-    <div class="container" id="image-color-canvas-world-app">
-      <svg viewBox="0 0 360 100" class="mainView">
-        <For each={fileNameUrl()}>
+    <div class="container" id={appDomId}>
+      <svg
+        viewBox={"0 0 360 " + (360 * appHeightPerWidth().v).toString()}
+        class="mainView"
+      >
+        <For each={{ c: fileNameUrl(), n: appHeightPerWidth().v }.c}>
           {(item) => {
             const height = 20;
             const width = 20 / item.heightPerWidth;
             const x = item.hue - width / 2;
-            const y = item.light * 100 - height / 2;
+            const y =
+              (1 - item.light) * 360 * appHeightPerWidth().v - height / 2;
             return (
               <g>
                 <rect
