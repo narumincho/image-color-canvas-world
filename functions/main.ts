@@ -1,13 +1,14 @@
 import * as functions from "firebase-functions";
-import { getStorage } from "firebase-admin/storage";
-import { initializeApp } from "firebase-admin/app";
 import * as jimp from "jimp";
 import { createHash } from "crypto";
+import { getStorage } from "firebase-admin/storage";
+import { initializeApp } from "firebase-admin/app";
 
 const app = initializeApp();
 const defaultBucket = getStorage(app).bucket();
 
-export const image = functions.https.onRequest(async (request, response) => {
+export const image = functions.https.onRequest((request, response) => {
+  // eslint-disable-next-line prefer-named-capture-group
   const regexResult = /image\/(.+)/u.exec(request.path);
   if (regexResult === null) {
     response.send("パスがおかしい " + request.path);
@@ -40,7 +41,7 @@ export const uploadImage = functions.https.onRequest(
       return;
     }
     (await jimp.create(request.body))
-      .resize(jimp.AUTO, 512)
+      .resize(jimp.AUTO, 64)
       .getBuffer(jimp.MIME_PNG, (error, buffer) => {
         if (error) {
           response.send("リサイズに失敗しました");

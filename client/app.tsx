@@ -1,12 +1,4 @@
-import {
-  Accessor,
-  Component,
-  For,
-  JSX,
-  Setter,
-  Show,
-  createSignal,
-} from "solid-js";
+import { For, JSX, Setter, Show, createSignal } from "solid-js";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -17,12 +9,12 @@ type ImageColorAndUrlData = {
 
 const appDomId = "image-color-canvas-world-app";
 
-const handleResizeApp = (setAppHeightPerWidth: Setter<{ v: number }>) => {
+const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
-      setAppHeightPerWidth({
-        v: entry.target.clientHeight / entry.target.clientWidth,
-      });
+      setAppHeightPerWidth(
+        entry.target.clientHeight / entry.target.clientWidth
+      );
     }
   });
   const appDomElement = document.getElementById(appDomId);
@@ -35,7 +27,7 @@ const handleResizeApp = (setAppHeightPerWidth: Setter<{ v: number }>) => {
 
 const initialize = (
   setFileUrlList: Setter<ReadonlyArray<ImageColorAndUrlData>>,
-  setAppHeightPerWidth: Setter<{ readonly v: number }>
+  setAppHeightPerWidth: (n: number) => void
 ): (() => void) => {
   const getFiles = async (): Promise<void> => {
     const urlList = await getFileList();
@@ -230,9 +222,7 @@ export const App = (): JSX.Element => {
   const [uploadingState, setUploadingState] = createSignal<UploadingState>({
     type: "none",
   });
-  const [appHeightPerWidth, setAppHeightPerWidth] = createSignal<{
-    readonly v: number;
-  }>({ v: 1 });
+  const [appHeightPerWidth, setAppHeightPerWidth] = createSignal<number>(1);
 
   const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
 
@@ -278,19 +268,21 @@ export const App = (): JSX.Element => {
     });
   };
 
+  const calcY = (light: number, height: number): number => {
+    return (1 - light) * 360 * appHeightPerWidth() - height / 2;
+  };
+
   return (
     <div class="container" id={appDomId}>
       <svg
-        viewBox={"0 0 360 " + (360 * appHeightPerWidth().v).toString()}
+        viewBox={"0 0 360 " + (360 * appHeightPerWidth()).toString()}
         class="mainView"
       >
-        <For each={{ c: fileNameUrl(), n: appHeightPerWidth().v }.c}>
+        <For each={fileNameUrl()}>
           {(item) => {
             const height = 20;
             const width = 20 / item.heightPerWidth;
             const x = item.hue - width / 2;
-            const y =
-              (1 - item.light) * 360 * appHeightPerWidth().v - height / 2;
             return (
               <g>
                 <rect
@@ -298,14 +290,14 @@ export const App = (): JSX.Element => {
                     item.light * 100
                   )}%)`}
                   x={x - 1}
-                  y={y - 1}
+                  y={calcY(item.light, height) - 1}
                   width={width + 2}
                   height={height + 2}
                 />
                 <image
                   href={item.url}
                   x={x}
-                  y={y}
+                  y={calcY(item.light, height)}
                   width={width}
                   height={height}
                 />
@@ -315,7 +307,12 @@ export const App = (): JSX.Element => {
         </For>
       </svg>
       <div class="fileInputContainer">
-        <Show when={uploadingState().type !== "uploading"}>
+        <Show
+          when={
+            uploadingState().type !== "uploading" &&
+            !window.location.hash.includes("hide")
+          }
+        >
           <input
             class="fileInput"
             type="file"
