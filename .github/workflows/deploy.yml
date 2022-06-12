@@ -21,5 +21,6 @@ jobs:
       - run: npx next lint
       - run: npx next build
       - run: npx next export
+      - run: npx tsc  --project ./functions/tsconfig.json
       - name: Deploy to Firebase
         run: npx firebase deploy --project image-color-canvas-world --token ${{ secrets.FIREBASE_TOKEN }}
