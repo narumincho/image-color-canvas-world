@@ -8,7 +8,7 @@ import * as storage from "firebase/storage";
 
 const initialize = async (
   setFileUrlList: (
-    newUrlList: ReadonlyArray<{ readonly url: URL; readonly color: string }>
+    newUrlList: ReadonlyArray<{ readonly url: string; readonly color: string }>
   ) => void,
   storageInstance: storage.FirebaseStorage
 ): Promise<void> => {
@@ -20,7 +20,7 @@ const initialize = async (
     setFileUrlList(
       await Promise.all(
         urlList.map(async (url) => ({
-          color: await getImageMainColor(url.toString()),
+          color: await getImageMainColor(url),
           url: url,
         }))
       )
@@ -36,17 +36,13 @@ const initialize = async (
 
 const getFileList = async (
   storageInstance: storage.FirebaseStorage
-): Promise<ReadonlyArray<URL>> => {
+): Promise<ReadonlyArray<string>> => {
   const ref = storage.ref(storageInstance, "images");
 
   const k = await storage.listAll(ref);
   return await Promise.all(
     k.items.map(async (l) => {
-      return new URL(
-        `https://storage.googleapis.com/download/storage/v1/b/image-color-canvas-world.appspot.com/o/${encodeURIComponent(
-          l.fullPath
-        )}?alt=media`
-      );
+      return `/image/${l.name}`;
     })
   );
 };
@@ -268,31 +264,27 @@ const result: ReadonlyArray<{
 
 const Home: NextPage = () => {
   const [fileNameUrl, setFileUrlList] = React.useState<
-    ReadonlyArray<{ readonly url: URL; readonly color: string }>
+    ReadonlyArray<{ readonly url: string; readonly color: string }>
   >([]);
-  const [storageInstance] = React.useState<storage.FirebaseStorage | undefined>(
-    () => {
-      try {
-        return storage.getStorage(
-          app.initializeApp({
-            apiKey: "AIzaSyASlwb-s10yx934_3z9F84N3eNzxX99FCM",
-            authDomain: "image-color-canvas-world.firebaseapp.com",
-            databaseURL: "",
-            messagingSenderId: "1078278609788",
-            projectId: "image-color-canvas-world",
-            storageBucket: "image-color-canvas-world.appspot.com",
-          })
-        );
-      } catch (e) {
-        console.error("初期化エラー", e);
-      }
-    }
-  );
+  const [storageInstance, setStorageInstance] = React.useState<
+    storage.FirebaseStorage | undefined
+  >(undefined);
 
   React.useEffect(() => {
-    if (storageInstance !== undefined) {
-      initialize(setFileUrlList, storageInstance);
+    if (storageInstance === undefined) {
+      (async () => {
+        console.log("firebaseクライアントライブラリを初期化");
+        setStorageInstance(
+          storage.getStorage(
+            app.initializeApp(
+              await fetch("/__/firebase/init.json").then((e) => e.json())
+            )
+          )
+        );
+      })();
+      return;
     }
+    initialize(setFileUrlList, storageInstance);
   }, [storageInstance]);
 
   return (
@@ -305,10 +297,10 @@ const Home: NextPage = () => {
       <div>ファイル名たち{JSON.stringify(fileNameUrl)}</div>
       {fileNameUrl.map((urlAndColor) => (
         <div
-          key={urlAndColor.url.toString()}
+          key={urlAndColor.url}
           style={{ backgroundColor: urlAndColor.color, padding: 8 }}
         >
-          <img src={urlAndColor.url.toString()} alt="" />
+          <img src={urlAndColor.url} alt="" />
         </div>
       ))}
     </div>
