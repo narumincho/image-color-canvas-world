@@ -12,11 +12,22 @@ export const image = functions.https.onRequest(async (request, response) => {
     response.send("パスがおかしい " + request.path);
     return;
   }
-  defaultBucket
-    .file("images/" + regexResult[1])
-    .createReadStream()
-    .pipe(response);
+  defaultBucket.file(regexResult[1]).createReadStream().pipe(response);
 });
+
+export const imageNameList = functions.https.onRequest(
+  async (request, response) => {
+    const files = await defaultBucket.getFiles({});
+    response.send(
+      JSON.stringify({
+        fileNames: files[0].flatMap((file) => {
+          console.log("file", file.metadata);
+          return file.name;
+        }),
+      })
+    );
+  }
+);
 
 export const uploadImage = functions.https.onRequest(
   async (request, response) => {
