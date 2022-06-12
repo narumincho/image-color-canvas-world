@@ -12,6 +12,10 @@
                 "function": "image"
             },
             {
+                "source": "/imageNameList",
+                "function": "imageNameList"
+            },
+            {
                 "source": "/uploadImage",
                 "function": "uploadImage"
             }
