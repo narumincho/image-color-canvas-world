@@ -1,5 +1,5 @@
-import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import { render } from "solid-js/web";
 
 const rootElement = document.createElement("div");
 
@@ -11,5 +11,4 @@ document.body.style.margin = "0";
 
 document.body.appendChild(rootElement);
 
-const root = createRoot(rootElement);
-root.render(<App />);
+render(<App />, rootElement);

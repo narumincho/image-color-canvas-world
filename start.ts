@@ -1,53 +1,38 @@
+import * as firebaseJson from "./firebase.json";
 import {
-  createServer,
-  request as httpRequest,
   IncomingMessage,
   ServerResponse,
+  createServer,
+  request as httpRequest,
 } from "http";
-import { readFile } from "fs/promises";
 
 const server = createServer((request, response) => {
-  (async () => {
-    const firebaseJson: {
-      readonly hosting: {
-        readonly rewrites: ReadonlyArray<{
-          readonly source: string;
-          readonly function: string;
-        }>;
-      };
-      readonly emulators: {
-        readonly hosting: {
-          readonly port: number;
-        };
-      };
-    } = JSON.parse(new TextDecoder().decode(await readFile("./firebase.json")));
-    const path = request.url;
-    if (path === undefined) {
-      response.end("invalid path?");
+  const path = request.url;
+  if (path === undefined) {
+    response.end("invalid path?");
+    return;
+  }
+  for (const rewrite of firebaseJson.hosting.rewrites) {
+    if (glob(rewrite.source, path)) {
+      proxy({
+        portNumber: firebaseJson.emulators.hosting.port,
+        request,
+        response,
+      });
       return;
     }
-    for (const rewrite of firebaseJson.hosting.rewrites) {
-      if (glob(rewrite.source, path)) {
-        proxy({
-          portNumber: firebaseJson.emulators.hosting.port,
-          request,
-          response,
-        });
-        return;
-      }
-    }
-    proxy({
-      // parcel port
-      portNumber: 1234,
-      request,
-      response,
-    });
-  })();
+  }
+  proxy({
+    // vite port
+    portNumber: 3000,
+    request,
+    response,
+  });
 });
 
 const proxyPortNumber = 5002;
 
-server.listen(5002, () => {
+server.listen(proxyPortNumber, () => {
   console.log(
     `proxy サーバーを起動できたぞ! http://localhost:${proxyPortNumber}`
   );
@@ -58,7 +43,7 @@ const proxy = (parameter: {
   readonly request: IncomingMessage;
   readonly response: ServerResponse;
 }): void => {
-  const functionRequest = httpRequest(
+  const innerRequest = httpRequest(
     {
       hostname: `localhost`,
       port: parameter.portNumber,
@@ -66,26 +51,35 @@ const proxy = (parameter: {
       path: parameter.request.url,
       headers: parameter.request.headers,
     },
-    (functionResponse) => {
-      functionResponse.on("data", (data) => {
+    (innerResponse) => {
+      for (const [headerKey, headerValue] of Object.entries(
+        innerResponse.headers
+      )) {
+        if (headerValue !== undefined) {
+          parameter.response.setHeader(headerKey, headerValue);
+        }
+      }
+      innerResponse.on("data", (data) => {
         parameter.response.write(data);
       });
-      functionResponse.on("end", () => {
+      innerResponse.on("end", () => {
         parameter.response.end();
       });
     }
   );
   parameter.request.on("data", (data) => {
-    functionRequest.write(data);
+    innerRequest.write(data);
   });
   parameter.request.on("end", () => {
-    functionRequest.end();
+    innerRequest.end();
   });
 };
 
 const glob = (pattern: string, input: string): boolean => {
-  var re = new RegExp(
-    pattern.replace(/([.?+^$[\]\\(){}|\/-])/g, "\\$1").replace(/\*/g, ".*")
+  // eslint-disable-next-line require-unicode-regexp
+  const regex = new RegExp(
+    // eslint-disable-next-line prefer-named-capture-group
+    pattern.replace(/([.?+^$[\]\\(){}|/-])/gu, "\\$1").replace(/\*/gu, ".*")
   );
-  return re.test(input);
+  return regex.test(input);
 };

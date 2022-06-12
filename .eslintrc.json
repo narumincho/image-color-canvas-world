@@ -2,15 +2,8 @@
   "extends": [
     "eslint:all",
     "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended",
-    "plugin:react/recommended",
-    "plugin:react-hooks/recommended"
+    "plugin:prettier/recommended"
   ],
-  "settings": {
-    "react": {
-      "version": "detect"
-    }
-  },
   "plugins": ["@typescript-eslint"],
   "env": {
     "browser": true,
@@ -83,7 +76,6 @@
         "variables": false
       }
     ],
-    "@typescript-eslint/no-empty-function": ["off"],
-    "react/prop-types": ["off"]
+    "@typescript-eslint/no-empty-function": ["off"]
   }
 }
