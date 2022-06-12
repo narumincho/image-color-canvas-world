@@ -37,3 +37,6 @@ yarn-error.log*
 *.log
 
 /functions/*.js
+
+dist
+.parcel-cache

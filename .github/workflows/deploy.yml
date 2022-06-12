@@ -18,9 +18,6 @@ jobs:
           node-version: "16"
       - name: Install npm dependencies (npm ci)
         run: npm ci
-      - run: npx next lint
-      - run: npx next build
-      - run: npx next export
-      - run: npx tsc  --project ./functions/tsconfig.json
+      - run: npm run build
       - name: Deploy to Firebase
         run: npx firebase deploy --project image-color-canvas-world --token ${{ secrets.FIREBASE_TOKEN }}

@@ -1,3 +1,81 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": [
+    "eslint:all",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended"
+  ],
+  "plugins": ["@typescript-eslint"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "sourceType": "module",
+    "project": ["./tsconfig.json"]
+  },
+  "rules": {
+    "no-constant-condition": [
+      "error",
+      {
+        "checkLoops": false
+      }
+    ],
+    "no-else-return": [
+      "error",
+      {
+        "allowElseIf": false
+      }
+    ],
+    "one-var": ["error", "never"],
+    "sort-keys": ["off"],
+    "no-magic-numbers": ["off"],
+    "max-lines-per-function": ["off"],
+    "no-undefined": ["off"],
+    "default-case": ["off"],
+    "no-ternary": ["off"],
+    "id-length": ["off"],
+    "consistent-return": ["off"],
+    "new-cap": ["off"],
+    "no-use-before-define": ["off"],
+    "max-lines": ["off"],
+    "no-console": ["off"],
+    "max-params": ["off"],
+    "prefer-template": ["off"],
+    "spaced-comment": ["off"],
+    "no-bitwise": ["off"],
+    "capitalized-comments": ["off"],
+    "array-callback-return": ["off"],
+    "max-statements": ["off"],
+    "camelcase": ["off"],
+    "no-underscore-dangle": ["off"],
+    "prefer-destructuring": ["off"],
+    "@typescript-eslint/restrict-plus-operands": [
+      "error",
+      {
+        "checkCompoundAssignments": true
+      }
+    ],
+    "@typescript-eslint/array-type": [
+      "error",
+      {
+        "default": "generic"
+      }
+    ],
+    "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+    "@typescript-eslint/no-dynamic-delete": ["error"],
+    "@typescript-eslint/no-require-imports": ["error"],
+    "@typescript-eslint/no-unnecessary-qualifier": ["error"],
+    "@typescript-eslint/no-unused-expressions": ["error"],
+    "@typescript-eslint/prefer-for-of": ["error"],
+    "@typescript-eslint/require-array-sort-compare": ["error"],
+    "@typescript-eslint/no-use-before-define": [
+      "error",
+      {
+        "variables": false
+      }
+    ],
+    "@typescript-eslint/no-empty-function": ["off"]
+  }
 }

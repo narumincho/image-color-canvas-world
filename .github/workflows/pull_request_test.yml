@@ -15,7 +15,5 @@ jobs:
           node-version: "16"
       - name: Install npm dependencies (npm ci)
         run: npm ci
-      - run: npx next lint
-      - run: npx next build
-      - run: npx next export
+      - run: npm run build
       - run: npx tsc --project ./functions/tsconfig.json

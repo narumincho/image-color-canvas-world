@@ -1,8 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-import type { NextPage } from "next";
-import Head from "next/head";
-import styles from "../styles/Home.module.css";
-import React from "react";
+import { For, JSX, createSignal } from "solid-js";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -11,9 +7,9 @@ type ImageColorAndUrlData = {
   readonly heightPerWidth: number;
 };
 
-const initialize = async (
+const initialize = (
   setFileUrlList: (newUrlList: ReadonlyArray<ImageColorAndUrlData>) => void
-): Promise<void> => {
+): void => {
   const loop = async (): Promise<void> => {
     const urlList = await getFileList();
 
@@ -63,7 +59,7 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
       const imageData = context.getImageData(0, 0, image.width, image.height);
       const mainHue = imageDataGetModeHue(imageData);
       const result = {
-        url: url,
+        url,
         hue: mainHue,
         light: imageDataGetModeLight(imageData),
         heightPerWidth: imageData.height / imageData.width,
@@ -74,25 +70,12 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
     image.src = url;
   });
 
-const imageDataGetModeColor = (imageData: ImageData): string => {
-  const map = new Map<string, number>();
-  for (let i = 0; i < imageData.data.length / 4; i += 1) {
-    const r = imageData.data[i * 4 + 0];
-    const g = imageData.data[i * 4 + 1];
-    const b = imageData.data[i * 4 + 2];
-    const key = rgbToKey(colorToSimple({ r, b, g }));
-    const before = map.get(key);
-    map.set(key, before === undefined ? 1 : before + 1);
-  }
-  return maxMapKey(map, new Set()) ?? "#00FF00";
-};
-
 const imageDataGetModeHue = (imageData: ImageData): number => {
   const map = new Map<number, number>();
   for (let i = 0; i < imageData.data.length / 4; i += 1) {
-    const r = imageData.data[i * 4 + 0];
-    const g = imageData.data[i * 4 + 1];
-    const b = imageData.data[i * 4 + 2];
+    const r = imageData.data[i * 4 + 0] as number;
+    const g = imageData.data[i * 4 + 1] as number;
+    const b = imageData.data[i * 4 + 2] as number;
     const key = Math.floor(rgbColorToHue({ r, b, g }) / 10) * 10;
     const before = map.get(key);
     map.set(key, before === undefined ? 1 : before + 1);
@@ -104,9 +87,9 @@ const imageDataGetModeHue = (imageData: ImageData): number => {
 const imageDataGetModeLight = (imageData: ImageData): number => {
   let lightSum = 0;
   for (let i = 0; i < imageData.data.length / 4; i += 1) {
-    const r = imageData.data[i * 4 + 0];
-    const g = imageData.data[i * 4 + 1];
-    const b = imageData.data[i * 4 + 2];
+    const r = imageData.data[i * 4 + 0] as number;
+    const g = imageData.data[i * 4 + 1] as number;
+    const b = imageData.data[i * 4 + 2] as number;
     lightSum += rgbToLight({ r, b, g });
   }
   const pixelCount = imageData.width * imageData.height;
@@ -135,59 +118,10 @@ const maxMapKey = <key,>(
   }, undefined)?.key;
 };
 
-const sampleSize = 32;
-
-const colorToSimple = (color: Color): Color => {
-  return {
-    r: Math.floor(color.r / sampleSize) * sampleSize,
-    g: Math.floor(color.g / sampleSize) * sampleSize,
-    b: Math.floor(color.b / sampleSize) * sampleSize,
-  };
-};
-
-const rgbToKey = (color: Color): string => {
-  return `#${color.r.toString(16).padStart(2, "0")}${color.g
-    .toString(16)
-    .padStart(2, "0")}${color.b.toString(16).padStart(2, "0")}`;
-};
-
 type Color = {
   readonly r: number;
   readonly g: number;
   readonly b: number;
-};
-
-const imageDataGetAverageColor = (imageData: ImageData): Color => {
-  let rSum = 0;
-  let gSum = 0;
-  let bSum = 0;
-  for (let i = 0; i < imageData.data.length / 4; i += 1) {
-    const r = imageData.data[i * 4 + 0];
-    const g = imageData.data[i * 4 + 1];
-    const b = imageData.data[i * 4 + 2];
-    const a = imageData.data[i * 4 + 3];
-    rSum += r;
-    gSum += g;
-    bSum += b;
-  }
-  const pixelCount = imageData.width * imageData.height;
-  return {
-    r: Math.floor(rSum / pixelCount),
-    g: Math.floor(gSum / pixelCount),
-    b: Math.floor(gSum / pixelCount),
-  };
-};
-
-type Hsl = {
-  readonly hue: number;
-  readonly light: number;
-};
-
-const rgbToHsl = (color: Color): Hsl => {
-  return {
-    hue: rgbColorToHue(color),
-    light: rgbToLight(color),
-  };
 };
 
 const rgbColorToHue = (color: Color): number => {
@@ -224,93 +158,47 @@ const rgbToLight = (color: Color): number => {
   );
 };
 
-const result: ReadonlyArray<{
-  readonly path: string;
-  readonly averageColor: string;
-  readonly modeColor16: string;
-  readonly modeColor32: string;
-  readonly modeHubNonZero: string;
-  readonly modeHubWithLight?: string;
-}> = [
-  {
-    path: "labyrinth.png",
-    averageColor: "#5d6262",
-    modeColor16: "#505040",
-    modeColor32: "#406080",
-    modeHubNonZero: "#a3ccf5",
-    modeHubWithLight: "#1361ae",
-  },
-  {
-    path: "garden.png",
-    averageColor: "#727474",
-    modeColor16: "#506020",
-    modeColor32: "#406020",
-    modeHubNonZero: "#ccf5a3",
-    modeHubWithLight: "#7eb314",
-  },
-  {
-    path: "lavaBridge.png",
-    averageColor: "#7e5656",
-    modeColor16: "#202020",
-    modeColor32: "#202020",
-    modeHubNonZero: "#f5b8a3",
-    modeHubWithLight: "#a12a12",
-  },
-  {
-    path: "woodHouse.png",
-    averageColor: "#6a5454",
-    modeColor16: "#403020",
-    modeColor32: "#402020",
-    modeHubNonZero: "#f5cca3",
-  },
-];
-
-const Home: NextPage = () => {
-  const [fileNameUrl, setFileUrlList] = React.useState<
+export const App = (): JSX.Element => {
+  const [fileNameUrl, setFileUrlList] = createSignal<
     ReadonlyArray<ImageColorAndUrlData>
   >([]);
 
-  React.useEffect(() => {
-    initialize(setFileUrlList);
-  }, []);
+  initialize(setFileUrlList);
 
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>image color canvas world</title>
-        <meta name="description" content="Generated by create next app" />
-      </Head>
-      <svg viewBox="0 0 360 100" className={styles.mainView}>
-        {fileNameUrl.map((urlAndColor) => {
-          const height = 20;
-          const width = 20 / urlAndColor.heightPerWidth;
-          const x = urlAndColor.hue - width / 2;
-          const y = urlAndColor.light * 100 - height / 2;
-          return (
-            <g key={urlAndColor.url}>
-              <rect
-                key={urlAndColor.url}
-                fill={`hsl(${urlAndColor.hue}, 80%, ${Math.floor(
-                  urlAndColor.light * 100
-                )}%)`}
-                x={x - 1}
-                y={y - 1}
-                width={width + 2}
-                height={height + 2}
-              />
-              <image
-                href={urlAndColor.url}
-                x={x}
-                y={y}
-                width={width}
-                height={height}
-              />
-            </g>
-          );
-        })}
+    <div class="container">
+      <svg viewBox="0 0 360 100" class="mainView">
+        <For each={fileNameUrl()}>
+          {(item) => {
+            const height = 20;
+            const width = 20 / item.heightPerWidth;
+            const x = item.hue - width / 2;
+            const y = item.light * 100 - height / 2;
+            return (
+              <g>
+                <rect
+                  fill={`hsl(${item.hue}, 80%, ${Math.floor(
+                    item.light * 100
+                  )}%)`}
+                  x={x - 1}
+                  y={y - 1}
+                  width={width + 2}
+                  height={height + 2}
+                />
+                <image
+                  href={item.url}
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
+                />
+              </g>
+            );
+          }}
+        </For>
       </svg>
       <input
-        className={styles.fileInput}
+        class="fileInput"
         type="file"
         accept="image/png, image/jpeg"
         multiple
@@ -337,5 +225,3 @@ const Home: NextPage = () => {
     </div>
   );
 };
-
-export default Home;
