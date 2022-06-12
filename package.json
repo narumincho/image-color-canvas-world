@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "npx vite build",
+    "build": "npx vite build && npx tsc --project ./functions/tsconfig.json",
     "functions-tsc": "npx tsc  --project ./functions/tsconfig.json --watch",
     "emulator-start": "npx firebase emulators:start --project image-color-canvas-world",
     "vite-start": "npx vite",
