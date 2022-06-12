@@ -53,9 +53,11 @@ const imageColor = (url: string): void => {
 
     context.drawImage(image, 0, 0);
     const imageData = context.getImageData(0, 0, image.width, image.height);
-    const mainColor = imageDataGetHubModeColor(imageData);
-    document.body.style.backgroundColor = `hsl(${mainColor}, 80%, 80%)`;
-    console.log({ mainColor });
+    const mainHue = imageDataGetModeHue(imageData);
+    document.body.style.backgroundColor = `hsl(${mainHue}, 80%, ${Math.floor(
+      imageDataGetModeLight(imageData) * 100
+    )}%)`;
+    console.log({ mainHue });
     canvasElement.style.width = "256px";
     document.body.append(canvasElement);
   };
@@ -75,18 +77,32 @@ const imageDataGetModeColor = (imageData: ImageData): string => {
   return maxMapKey(map, new Set()) ?? "#00FF00";
 };
 
-const imageDataGetHubModeColor = (imageData: ImageData): number => {
+const imageDataGetModeHue = (imageData: ImageData): number => {
   const map = new Map<number, number>();
   for (let i = 0; i < imageData.data.length / 4; i += 1) {
     const r = imageData.data[i * 4 + 0];
     const g = imageData.data[i * 4 + 1];
     const b = imageData.data[i * 4 + 2];
-    const key = Math.floor(rgbColorToHue(colorToSimple({ r, b, g })) / 15) * 15;
+    const key = Math.floor(rgbColorToHue({ r, b, g }) / 10) * 10;
     const before = map.get(key);
     map.set(key, before === undefined ? 1 : before + 1);
   }
   console.log("map", map);
   return maxMapKey(map, new Set([0])) ?? 23;
+};
+
+const imageDataGetModeLight = (imageData: ImageData): number => {
+  let lightSum = 0;
+  for (let i = 0; i < imageData.data.length / 4; i += 1) {
+    const r = imageData.data[i * 4 + 0];
+    const g = imageData.data[i * 4 + 1];
+    const b = imageData.data[i * 4 + 2];
+    lightSum += rgbToLight({ r, b, g });
+  }
+  const pixelCount = imageData.width * imageData.height;
+  const light = lightSum / pixelCount;
+  console.log({ light });
+  return light;
 };
 
 const maxMapKey = <key,>(
@@ -97,7 +113,7 @@ const maxMapKey = <key,>(
     { readonly key: key; readonly value: number } | undefined
   >((beforeMax, [k, v]) => {
     if (exclude.has(k)) {
-      return undefined;
+      return beforeMax;
     }
     if (beforeMax === undefined) {
       return { key: k, value: v };
@@ -189,11 +205,12 @@ const rgbColorToRawHue = (color: Color): number => {
   return 0;
 };
 
-const rgbToLight = (color: Color) => {
+const rgbToLight = (color: Color): number => {
   return (
     (Math.max(color.r, color.g, color.b) +
       Math.min(color.r, color.g, color.b)) /
-    2
+    2 /
+    256
   );
 };
 
@@ -203,6 +220,7 @@ const result: ReadonlyArray<{
   readonly modeColor16: string;
   readonly modeColor32: string;
   readonly modeHubNonZero: string;
+  readonly modeHubWithLight?: string;
 }> = [
   {
     path: "labyrinth.png",
@@ -210,6 +228,7 @@ const result: ReadonlyArray<{
     modeColor16: "#505040",
     modeColor32: "#406080",
     modeHubNonZero: "#a3ccf5",
+    modeHubWithLight: "#1361ae",
   },
   {
     path: "garden.png",
@@ -217,6 +236,7 @@ const result: ReadonlyArray<{
     modeColor16: "#506020",
     modeColor32: "#406020",
     modeHubNonZero: "#ccf5a3",
+    modeHubWithLight: "#7eb314",
   },
   {
     path: "lavaBridge.png",
@@ -224,6 +244,7 @@ const result: ReadonlyArray<{
     modeColor16: "#202020",
     modeColor32: "#202020",
     modeHubNonZero: "#f5b8a3",
+    modeHubWithLight: "#a12a12",
   },
   {
     path: "woodHouse.png",
@@ -236,30 +257,31 @@ const result: ReadonlyArray<{
 
 const Home: NextPage = () => {
   const [fileNameUrl, setFileUrlList] = React.useState<ReadonlyArray<URL>>([]);
-  // const [storageInstance] = React.useState<storage.FirebaseStorage | undefined>(
-  //   () => {
-  //     try {
-  //       return storage.getStorage(
-  //         app.initializeApp({
-  //           apiKey: "AIzaSyASlwb-s10yx934_3z9F84N3eNzxX99FCM",
-  //           authDomain: "image-color-canvas-world.firebaseapp.com",
-  //           databaseURL: "",
-  //           messagingSenderId: "1078278609788",
-  //           projectId: "image-color-canvas-world",
-  //           storageBucket: "image-color-canvas-world.appspot.com",
-  //         })
-  //       );
-  //     } catch (e) {
-  //       console.error("初期化エラー", e);
-  //     }
-  //   }
-  // );
+  const [storageInstance] = React.useState<storage.FirebaseStorage | undefined>(
+    () => {
+      return;
+      try {
+        return storage.getStorage(
+          app.initializeApp({
+            apiKey: "AIzaSyASlwb-s10yx934_3z9F84N3eNzxX99FCM",
+            authDomain: "image-color-canvas-world.firebaseapp.com",
+            databaseURL: "",
+            messagingSenderId: "1078278609788",
+            projectId: "image-color-canvas-world",
+            storageBucket: "image-color-canvas-world.appspot.com",
+          })
+        );
+      } catch (e) {
+        console.error("初期化エラー", e);
+      }
+    }
+  );
 
-  // React.useEffect(() => {
-  //   if (storageInstance !== undefined) {
-  //     initialize(setFileUrlList, storageInstance);
-  //   }
-  // }, [storageInstance]);
+  React.useEffect(() => {
+    if (storageInstance !== undefined) {
+      initialize(setFileUrlList, storageInstance);
+    }
+  }, [storageInstance]);
 
   React.useEffect(() => {
     imageColor(targetImage.src);
