@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import { getStorage } from "firebase-admin/storage";
 import { initializeApp } from "firebase-admin/app";
 import * as jimp from "jimp";
+import { createHash } from "crypto";
 
 const app = initializeApp();
 const defaultBucket = getStorage(app).bucket();
@@ -21,7 +22,6 @@ export const imageNameList = functions.https.onRequest(
     response.send(
       JSON.stringify({
         fileNames: files[0].flatMap((file) => {
-          console.log("file", file.metadata);
           return file.name;
         }),
       })
@@ -46,7 +46,7 @@ export const uploadImage = functions.https.onRequest(
           response.send("リサイズに失敗しました");
         }
         defaultBucket
-          .file(request.path.slice(1))
+          .file(createHash("sha256").update(buffer).digest("hex"))
           .save(buffer, { contentType: "image/png" })
           .then(() => {
             response.send("ok");

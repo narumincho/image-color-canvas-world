@@ -4,27 +4,23 @@ import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import React from "react";
 
+type ImageColorAndUrlData = {
+  readonly url: string;
+  readonly hue: number;
+  readonly light: number;
+  readonly heightPerWidth: number;
+};
+
 const initialize = async (
-  setFileUrlList: (
-    newUrlList: ReadonlyArray<{
-      readonly url: string;
-      readonly hue: number;
-      readonly light: number;
-    }>
-  ) => void
+  setFileUrlList: (newUrlList: ReadonlyArray<ImageColorAndUrlData>) => void
 ): Promise<void> => {
   const loop = async (): Promise<void> => {
     const urlList = await getFileList();
 
     setFileUrlList(
       await Promise.all(
-        urlList.map(async (url) => {
-          const colorData = await getImageMainColor(url);
-          return {
-            hue: colorData.hue,
-            light: colorData.light,
-            url: url,
-          };
+        urlList.map<Promise<ImageColorAndUrlData>>((url) => {
+          return getImageMainColor(url);
         })
       )
     );
@@ -45,10 +41,14 @@ const getFileList = async (): Promise<ReadonlyArray<string>> => {
   return result.fileNames.map((fileName) => `/image/${fileName}`);
 };
 
-const getImageMainColor = (
-  url: string
-): Promise<{ readonly hue: number; readonly light: number }> =>
+const cache = new Map<string, ImageColorAndUrlData>();
+
+const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
   new Promise((resolve) => {
+    const resultFromCache = cache.get(url);
+    if (resultFromCache !== undefined) {
+      resolve(resultFromCache);
+    }
     const image = new Image();
     image.onload = () => {
       console.log("画像を読み込めました", image);
@@ -62,10 +62,14 @@ const getImageMainColor = (
       context.drawImage(image, 0, 0);
       const imageData = context.getImageData(0, 0, image.width, image.height);
       const mainHue = imageDataGetModeHue(imageData);
-      resolve({
+      const result = {
+        url: url,
         hue: mainHue,
         light: imageDataGetModeLight(imageData),
-      });
+        heightPerWidth: imageData.height / imageData.width,
+      };
+      cache.set(url, result);
+      resolve(result);
     };
     image.src = url;
   });
@@ -263,11 +267,7 @@ const result: ReadonlyArray<{
 
 const Home: NextPage = () => {
   const [fileNameUrl, setFileUrlList] = React.useState<
-    ReadonlyArray<{
-      readonly url: string;
-      readonly hue: number;
-      readonly light: number;
-    }>
+    ReadonlyArray<ImageColorAndUrlData>
   >([]);
 
   React.useEffect(() => {
@@ -282,8 +282,10 @@ const Home: NextPage = () => {
       </Head>
       <svg viewBox="0 0 360 100" className={styles.mainView}>
         {fileNameUrl.map((urlAndColor) => {
-          const x = urlAndColor.hue;
-          const y = urlAndColor.light * 100;
+          const height = 20;
+          const width = 20 / urlAndColor.heightPerWidth;
+          const x = urlAndColor.hue - width / 2;
+          const y = urlAndColor.light * 100 - height / 2;
           return (
             <g key={urlAndColor.url}>
               <rect
@@ -293,20 +295,45 @@ const Home: NextPage = () => {
                 )}%)`}
                 x={x - 1}
                 y={y - 1}
-                width={10 + 1}
-                height={10 + 1}
+                width={width + 2}
+                height={height + 2}
               />
               <image
                 href={urlAndColor.url}
                 x={x}
                 y={y}
-                width={10}
-                height={10}
+                width={width}
+                height={height}
               />
             </g>
           );
         })}
       </svg>
+      <input
+        className={styles.fileInput}
+        type="file"
+        accept="image/png, image/jpeg"
+        multiple
+        onInput={(e) => {
+          const files = e.currentTarget.files;
+          if (files === null) {
+            return;
+          }
+          [...files].map(async (file) => {
+            fetch("/uploadImage", {
+              method: "POST",
+              body: await file.arrayBuffer(),
+              headers: new Headers({
+                "content-type": file.type,
+              }),
+            }).then(() => {
+              console.log("ok");
+            });
+          });
+
+          console.log("ファイルを入力した", e);
+        }}
+      />
     </div>
   );
 };
