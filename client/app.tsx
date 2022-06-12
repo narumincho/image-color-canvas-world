@@ -1,4 +1,4 @@
-import { For, JSX, createSignal } from "solid-js";
+import { For, JSX, Show, createSignal } from "solid-js";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -9,8 +9,8 @@ type ImageColorAndUrlData = {
 
 const initialize = (
   setFileUrlList: (newUrlList: ReadonlyArray<ImageColorAndUrlData>) => void
-): void => {
-  const loop = async (): Promise<void> => {
+): (() => void) => {
+  const getFiles = async (): Promise<void> => {
     const urlList = await getFileList();
 
     setFileUrlList(
@@ -23,10 +23,12 @@ const initialize = (
 
     console.log("10秒に一回する処理!", urlList);
   };
-  setInterval(loop, 10000);
-  loop();
+  setInterval(getFiles, 10000);
+  getFiles();
 
   console.log("初期化しました");
+
+  return getFiles;
 };
 
 const getFileList = async (): Promise<ReadonlyArray<string>> => {
@@ -44,6 +46,7 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
     const resultFromCache = cache.get(url);
     if (resultFromCache !== undefined) {
       resolve(resultFromCache);
+      return;
     }
     const image = new Image();
     image.onload = () => {
@@ -158,15 +161,92 @@ const rgbToLight = (color: Color): number => {
   );
 };
 
+type UploadingState =
+  | {
+      readonly type: "uploading";
+      readonly current: number;
+      readonly all: number;
+    }
+  | {
+      readonly type: "none";
+    }
+  | {
+      readonly type: "complete";
+      readonly fileCount: number;
+    };
+
+const getUploadingMessage = (uploadingState: UploadingState): string => {
+  switch (uploadingState.type) {
+    case "uploading":
+      return (
+        "アップロード中... " +
+        uploadingState.current.toString() +
+        "/" +
+        uploadingState.all.toString()
+      );
+    case "none":
+      return "";
+    case "complete":
+      return (
+        uploadingState.fileCount.toString() + "つの画像をアップロードしました"
+      );
+  }
+};
+
 export const App = (): JSX.Element => {
   const [fileNameUrl, setFileUrlList] = createSignal<
     ReadonlyArray<ImageColorAndUrlData>
   >([]);
+  const [uploadingState, setUploadingState] = createSignal<UploadingState>({
+    type: "none",
+  });
 
-  initialize(setFileUrlList);
+  const getFiles = initialize(setFileUrlList);
+
+  const onInputFile: JSX.DOMAttributes<HTMLInputElement>["onInput"] = (e) => {
+    const files = e.currentTarget.files;
+    if (files === null) {
+      return;
+    }
+    setUploadingState({
+      type: "uploading",
+      current: 0,
+      all: files.length,
+    });
+    Promise.all(
+      [...files].map(async (file) => {
+        return fetch("/uploadImage", {
+          method: "POST",
+          body: await file.arrayBuffer(),
+          headers: new Headers({
+            "content-type": file.type,
+          }),
+        }).then(() => {
+          setUploadingState((before) => {
+            if (before.type !== "uploading") {
+              return before;
+            }
+            return {
+              type: "uploading",
+              all: before.all,
+              current: before.current + 1,
+            };
+          });
+
+          console.log("ok");
+        });
+      })
+    ).then(() => {
+      setUploadingState((before) => ({
+        type: "complete",
+        fileCount: before.type === "uploading" ? before.all : -1,
+      }));
+      getFiles();
+    });
+  };
 
   return (
-    <div class="container">
+    <div class="container" id="image-color-canvas-world-app">
       <svg viewBox="0 0 360 100" class="mainView">
         <For each={fileNameUrl()}>
           {(item) => {
@@ -197,31 +277,18 @@ export const App = (): JSX.Element => {
           }}
         </For>
       </svg>
-      <input
-        class="fileInput"
-        type="file"
-        accept="image/png, image/jpeg"
-        multiple
-        onInput={(e) => {
-          const files = e.currentTarget.files;
-          if (files === null) {
-            return;
-          }
-          [...files].map(async (file) => {
-            fetch("/uploadImage", {
-              method: "POST",
-              body: await file.arrayBuffer(),
-              headers: new Headers({
-                "content-type": file.type,
-              }),
-            }).then(() => {
-              console.log("ok");
-            });
-          });
-
-          console.log("ファイルを入力した", e);
-        }}
-      />
+      <div class="fileInputContainer">
+        <Show when={uploadingState().type !== "uploading"}>
+          <input
+            class="fileInput"
+            type="file"
+            accept="image/png, image/jpeg"
+            multiple
+            onInput={onInputFile}
+          />
+        </Show>
+        <div class="message">{getUploadingMessage(uploadingState())}</div>
+      </div>
     </div>
   );
 };

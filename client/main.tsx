@@ -11,4 +11,4 @@ document.body.style.margin = "0";
 
 document.body.appendChild(rootElement);
 
-render(<App />, rootElement);
+render(() => <App />, rootElement);

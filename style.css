@@ -29,11 +29,27 @@ a {
   grid-row: 1 / 2;
 }
 
-.fileInput {
+.fileInputContainer {
   width: 100%;
 
   grid-column: 1 / 2;
   grid-row: 1 / 2;
 
   align-self: flex-end;
+
+  display: flex;
+  justify-content: space-between;
+
+  height: 48px;
+}
+
+.fileInput {
+  flex-grow: 1;
+
+  align-self: stretch;
+}
+
+.message {
+  align-self: center;
+  padding-right: 16px;
 }
