@@ -30,8 +30,9 @@ export const imageNameList = functions.https.onRequest(
   }
 );
 
-export const uploadImage = functions.https.onRequest(
-  async (request, response) => {
+export const uploadImage = functions
+  .runWith({ memory: "1GB" })
+  .https.onRequest(async (request, response) => {
     if (request.method.toUpperCase() !== "POST") {
       response.send("post してね");
       return;
@@ -53,5 +54,4 @@ export const uploadImage = functions.https.onRequest(
             response.send("ok");
           });
       });
-  }
-);
+  });
