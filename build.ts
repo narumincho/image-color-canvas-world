@@ -1,32 +1,12 @@
-import * as esBuild from "npm:esbuild";
 import { encodeHex } from "jsr:@std/encoding/hex";
-import { denoPlugins } from "jsr:@luca/esbuild-deno-loader";
-import { solidPlugin } from "npm:esbuild-plugin-solid";
+import { bundle } from "jsr:@deno/emit";
 
-const buildMainJs = async (): Promise<string> => {
-  const esbuildResult = await esBuild.build({
-    entryPoints: ["./client/app.tsx"],
-    plugins: [...denoPlugins(), solidPlugin()],
-    write: false,
-    bundle: true,
-    format: "cjs",
-    target: ["node20"],
-  });
-
-  for (const esbuildResultFile of esbuildResult.outputFiles ?? []) {
-    if (esbuildResultFile.path === "<stdout>") {
-      console.log("js 発見");
-      const scriptContent = new TextDecoder().decode(
-        esbuildResultFile.contents,
-      );
-
-      return scriptContent;
-    }
-  }
-  throw new Error("esbuild で <stdout> の出力を取得できなかった...");
-};
-
-const clientCode = await buildMainJs();
+const clientCode = (await bundle("./client/main.tsx", {
+  compilerOptions: {
+    jsxFactory: "h",
+  },
+})).code;
+const styleCss = await Deno.readTextFile("./client/style.css");
 
 await Deno.writeTextFile(
   "./dist.json",
@@ -38,7 +18,12 @@ await Deno.writeTextFile(
         new TextEncoder().encode(clientCode),
       ),
     ),
+    styleCss,
+    styleCssHash: encodeHex(
+      await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(styleCss),
+      ),
+    ),
   }),
 );
-
-await esBuild.stop();

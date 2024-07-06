@@ -7,10 +7,10 @@
       "dom",
       "dom.iterable"
     ],
-    "jsx": "react-jsx",
-    "jsxImportSource": "npm:solid-js"
+    "jsxFactory": "h"
   },
-  "imports": {
-    "solid-js": "npm:solid-js"
+  "tasks": {
+    "start": "deno run -A --watch ./main.tsx",
+    "build": "deno run -A --watch=client ./build.ts"
   }
 }

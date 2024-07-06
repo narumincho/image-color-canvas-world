@@ -1,4 +1,5 @@
-import { createSignal, For, JSX, Setter, Show } from "solid-js";
+import { h, JSX } from "https://esm.sh/preact@10.22.1?pin=v135";
+import { useState } from "https://esm.sh/preact@10.22.1/hooks?pin=v135";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -26,7 +27,7 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
 };
 
 const initialize = (
-  setFileUrlList: Setter<ReadonlyArray<ImageColorAndUrlData>>,
+  setFileUrlList: (v: ReadonlyArray<ImageColorAndUrlData>) => void,
   setAppHeightPerWidth: (n: number) => void,
 ): () => void => {
   const getFiles = async (): Promise<void> => {
@@ -216,13 +217,13 @@ const getUploadingMessage = (uploadingState: UploadingState): string => {
 };
 
 export const App = (): JSX.Element => {
-  const [fileNameUrl, setFileUrlList] = createSignal<
+  const [fileNameUrl, setFileUrlList] = useState<
     ReadonlyArray<ImageColorAndUrlData>
   >([]);
-  const [uploadingState, setUploadingState] = createSignal<UploadingState>({
+  const [uploadingState, setUploadingState] = useState<UploadingState>({
     type: "none",
   });
-  const [appHeightPerWidth, setAppHeightPerWidth] = createSignal<number>(1);
+  const [appHeightPerWidth, setAppHeightPerWidth] = useState<number>(1);
 
   const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
 
@@ -269,59 +270,58 @@ export const App = (): JSX.Element => {
   };
 
   const calcY = (light: number, height: number): number => {
-    return (1 - light) * 360 * appHeightPerWidth() - height / 2;
+    return (1 - light) * 360 * appHeightPerWidth - height / 2;
   };
 
   return (
     <div class="container" id={appDomId}>
       <svg
-        viewBox={"0 0 360 " + (360 * appHeightPerWidth()).toString()}
+        viewBox={"0 0 360 " + (360 * appHeightPerWidth).toString()}
         class="mainView"
       >
-        <For each={fileNameUrl()}>
-          {(item) => {
-            const height = 20;
-            const width = 20 / item.heightPerWidth;
-            const x = item.hue - width / 2;
-            return (
-              <g>
-                <rect
-                  fill={`hsl(${item.hue}, 80%, ${
-                    Math.floor(
-                      item.light * 100,
-                    )
-                  }%)`}
-                  x={x - 1}
-                  y={calcY(item.light, height) - 1}
-                  width={width + 2}
-                  height={height + 2}
-                />
-                <image
-                  href={item.url}
-                  x={x}
-                  y={calcY(item.light, height)}
-                  width={width}
-                  height={height}
-                />
-              </g>
-            );
-          }}
-        </For>
+        {fileNameUrl.map((item) => {
+          const height = 20;
+          const width = 20 / item.heightPerWidth;
+          const x = item.hue - width / 2;
+          return (
+            <g>
+              <rect
+                fill={`hsl(${item.hue}, 80%, ${
+                  Math.floor(
+                    item.light * 100,
+                  )
+                }%)`}
+                x={x - 1}
+                y={calcY(item.light, height) - 1}
+                width={width + 2}
+                height={height + 2}
+              />
+              <image
+                href={item.url}
+                x={x}
+                y={calcY(item.light, height)}
+                width={width}
+                height={height}
+              />
+            </g>
+          );
+        })}
       </svg>
       <div class="fileInputContainer">
-        <Show
-          when={uploadingState().type !== "uploading" &&
-            !window.location.hash.includes("hide")}
-        >
-          <input
-            class="fileInput"
-            type="file"
-            accept="image/png, image/jpeg"
-            multiple
-            onInput={onInputFile}
-          />
-        </Show>
-        <div class="message">{getUploadingMessage(uploadingState())}</div>
+        {uploadingState.type !== "uploading" &&
+            !window.location.hash.includes("hide")
+          ? (
+            <input
+              class="fileInput"
+              type="file"
+              accept="image/png, image/jpeg"
+              multiple
+              onInput={onInputFile}
+            />
+          )
+          : undefined}
+
+        <div class="message">{getUploadingMessage(uploadingState)}</div>
       </div>
     </div>
   );
