@@ -6,10 +6,12 @@ const response: { fileNames: ReadonlyArray<string> } = await (
 );
 
 for (const fileName of response.fileNames) {
+  console.log(`downloading: ${fileName}`);
   const image = await (await fetch(
     `https://image-color-canvas-world.web.app/image/${fileName}`,
   )).arrayBuffer();
-  const path = `./image/${fileName}`;
+
+  const path = `./image/${fileName}.png`;
   await ensureFile(path);
-  await Deno.writeFile(`./image/${fileName}`, new Uint8Array(image));
+  await Deno.writeFile(path, new Uint8Array(image));
 }
