@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": true,
+    "lib": [
+      "deno.ns",
+      "dom",
+      "dom.iterable"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "npm:solid-js"
+  },
+  "imports": {
+    "solid-js": "npm:solid-js"
+  }
+}

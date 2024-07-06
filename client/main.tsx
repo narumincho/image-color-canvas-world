@@ -1,4 +1,4 @@
-import { App } from "./app";
+import { App } from "./app.tsx";
 import { render } from "solid-js/web";
 
 const rootElement = document.createElement("div");

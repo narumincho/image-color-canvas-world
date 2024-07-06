@@ -1,4 +1,4 @@
-import { For, JSX, Setter, Show, createSignal } from "solid-js";
+import { createSignal, For, JSX, Setter, Show } from "solid-js";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -13,7 +13,7 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       setAppHeightPerWidth(
-        entry.target.clientHeight / entry.target.clientWidth
+        entry.target.clientHeight / entry.target.clientWidth,
       );
     }
   });
@@ -27,8 +27,8 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
 
 const initialize = (
   setFileUrlList: Setter<ReadonlyArray<ImageColorAndUrlData>>,
-  setAppHeightPerWidth: (n: number) => void
-): (() => void) => {
+  setAppHeightPerWidth: (n: number) => void,
+): () => void => {
   const getFiles = async (): Promise<void> => {
     const urlList = await getFileList();
 
@@ -36,8 +36,8 @@ const initialize = (
       await Promise.all(
         urlList.map<Promise<ImageColorAndUrlData>>((url) => {
           return getImageMainColor(url);
-        })
-      )
+        }),
+      ),
     );
 
     console.log("10秒に一回する処理!", urlList);
@@ -77,7 +77,7 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
       canvasElement.width = image.width;
       canvasElement.height = image.height;
       const context = canvasElement.getContext(
-        "2d"
+        "2d",
       ) as CanvasRenderingContext2D;
 
       context.drawImage(image, 0, 0);
@@ -125,7 +125,7 @@ const imageDataGetModeLight = (imageData: ImageData): number => {
 
 const maxMapKey = <key,>(
   map: ReadonlyMap<key, number>,
-  exclude: ReadonlySet<key>
+  exclude: ReadonlySet<key>,
 ): key | undefined => {
   return [...map].reduce<
     { readonly key: key; readonly value: number } | undefined
@@ -185,17 +185,17 @@ const rgbToLight = (color: Color): number => {
 
 type UploadingState =
   | {
-      readonly type: "uploading";
-      readonly current: number;
-      readonly all: number;
-    }
+    readonly type: "uploading";
+    readonly current: number;
+    readonly all: number;
+  }
   | {
-      readonly type: "none";
-    }
+    readonly type: "none";
+  }
   | {
-      readonly type: "complete";
-      readonly fileCount: number;
-    };
+    readonly type: "complete";
+    readonly fileCount: number;
+  };
 
 const getUploadingMessage = (uploadingState: UploadingState): string => {
   switch (uploadingState.type) {
@@ -258,7 +258,7 @@ export const App = (): JSX.Element => {
 
           console.log("ok");
         });
-      })
+      }),
     ).then(() => {
       setUploadingState((before) => ({
         type: "complete",
@@ -286,9 +286,11 @@ export const App = (): JSX.Element => {
             return (
               <g>
                 <rect
-                  fill={`hsl(${item.hue}, 80%, ${Math.floor(
-                    item.light * 100
-                  )}%)`}
+                  fill={`hsl(${item.hue}, 80%, ${
+                    Math.floor(
+                      item.light * 100,
+                    )
+                  }%)`}
                   x={x - 1}
                   y={calcY(item.light, height) - 1}
                   width={width + 2}
@@ -308,10 +310,8 @@ export const App = (): JSX.Element => {
       </svg>
       <div class="fileInputContainer">
         <Show
-          when={
-            uploadingState().type !== "uploading" &&
-            !window.location.hash.includes("hide")
-          }
+          when={uploadingState().type !== "uploading" &&
+            !window.location.hash.includes("hide")}
         >
           <input
             class="fileInput"
