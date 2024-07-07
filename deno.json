@@ -10,7 +10,7 @@
     "jsxFactory": "h"
   },
   "tasks": {
-    "start": "deno run -A --watch ./main.tsx",
+    "start": "deno run -A --watch ./startInLocal.ts",
     "build": "deno run -A --watch=client ./build.ts"
   }
 }
