@@ -7,29 +7,6 @@ import { initializeApp } from "firebase-admin/app";
 const app = initializeApp();
 const defaultBucket = getStorage(app).bucket();
 
-export const image = functions.https.onRequest((request, response) => {
-  // eslint-disable-next-line prefer-named-capture-group
-  const regexResult = /image\/(.+)/u.exec(request.path);
-  if (regexResult === null) {
-    response.send("パスがおかしい " + request.path);
-    return;
-  }
-  defaultBucket.file(regexResult[1]).createReadStream().pipe(response);
-});
-
-export const imageNameList = functions.https.onRequest(
-  async (request, response) => {
-    const files = await defaultBucket.getFiles({});
-    response.send(
-      JSON.stringify({
-        fileNames: files[0].flatMap((file) => {
-          return file.name;
-        }),
-      })
-    );
-  }
-);
-
 export const uploadImage = functions
   .runWith({ memory: "1GB" })
   .https.onRequest(async (request, response) => {

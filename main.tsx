@@ -44,20 +44,13 @@ export const main = (props: {
           accessKey: "5a92072e46e542f16f9ebcfee76d98b1",
           bucket: "image-color-canvas-world",
           secretKey: props.r2SecretAccessKey,
-          // accessKeyID: "5a92072e46e542f16f9ebcfee76d98b1",
-          // endpointURL:
-          //   // "https://6a8354084cc02bb1c5f9ca1bb3442704.r2.cloudflarestorage.com",
-          //   "https://6a8354084cc02bb1c5f9ca1bb3442704.eu.r2.cloudflarestorage.com",
-          // region: "us-east-1",
-          // // bucket: "image-color-canvas-world",
-          // bucket: "6a8354084cc02bb1c5f9ca1bb3442704",
-          // secretKey: props.r2SecretAccessKey,
         });
 
+        const fileNames: string[] = [];
         for await (const file of s3.listObjects()) {
-          console.log(file);
+          fileNames.push(file.key);
         }
-        return new Response(JSON.stringify({}), {
+        return new Response(JSON.stringify({ fileNames }), {
           headers: { "content-type": "application/json" },
         });
       }

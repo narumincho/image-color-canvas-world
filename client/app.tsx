@@ -45,7 +45,7 @@ const initialize = (
     console.log("10秒に一回する処理!", urlList);
   };
   setInterval(getFiles, 10000);
-  getFiles();
+  // getFiles();
   setTimeout(() => {
     handleResizeApp(setAppHeightPerWidth);
   }, 0);
@@ -60,7 +60,9 @@ const getFileList = async (): Promise<ReadonlyArray<string>> => {
   const result = (await response.json()) as {
     readonly fileNames: ReadonlyArray<string>;
   };
-  return result.fileNames.map((fileName) => `/image/${fileName}`);
+  return result.fileNames.map((fileName) =>
+    `https://pub-6d2556462da745a79f5d6f8720e63eb8.r2.dev/${fileName}`
+  );
 };
 
 const cache = new Map<string, ImageColorAndUrlData>();
@@ -74,25 +76,35 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
     }
     const image = new Image();
     image.onload = () => {
-      console.log("画像を読み込めました", image);
-      const canvasElement = document.createElement("canvas");
-      canvasElement.width = image.width;
-      canvasElement.height = image.height;
-      const context = canvasElement.getContext(
-        "2d",
-      ) as CanvasRenderingContext2D;
+      try {
+        console.log("画像を読み込めました", image);
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = image.width;
+        canvasElement.height = image.height;
+        const context = canvasElement.getContext(
+          "2d",
+        ) as CanvasRenderingContext2D;
 
-      context.drawImage(image, 0, 0);
-      const imageData = context.getImageData(0, 0, image.width, image.height);
-      const mainHue = imageDataGetModeHue(imageData);
-      const result = {
-        url,
-        hue: mainHue,
-        light: imageDataGetModeLight(imageData),
-        heightPerWidth: imageData.height / imageData.width,
-      };
-      cache.set(url, result);
-      resolve(result);
+        context.drawImage(image, 0, 0);
+        const imageData = context.getImageData(0, 0, image.width, image.height);
+        const mainHue = imageDataGetModeHue(imageData);
+        const result = {
+          url,
+          hue: mainHue,
+          light: imageDataGetModeLight(imageData),
+          heightPerWidth: imageData.height / imageData.width,
+        };
+        cache.set(url, result);
+        resolve(result);
+      } catch (e) {
+        console.error(e);
+        resolve({
+          url,
+          hue: 0,
+          light: 0,
+          heightPerWidth: 1,
+        });
+      }
     };
     image.src = url;
   });
@@ -226,7 +238,7 @@ export const App = (): JSX.Element => {
   });
   const [appHeightPerWidth, setAppHeightPerWidth] = useState<number>(1);
 
-  const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
+  // const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
 
   const onInputFile: JSX.DOMAttributes<HTMLInputElement>["onInput"] = (e) => {
     const files = e.currentTarget.files;
@@ -266,7 +278,7 @@ export const App = (): JSX.Element => {
         type: "complete",
         fileCount: before.type === "uploading" ? before.all : -1,
       }));
-      getFiles();
+      // getFiles();
     });
   };
 
