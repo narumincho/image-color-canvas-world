@@ -39,9 +39,8 @@ export const main = (props: {
         });
       case "/imageNameList": {
         const s3 = new S3Client({
-          endPoint:
-            "image-color-canvas-world.6a8354084cc02bb1c5f9ca1bb3442704.eu.r2.cloudflarestorage.com",
-          region: "us-east-1",
+          endPoint: "6a8354084cc02bb1c5f9ca1bb3442704.r2.cloudflarestorage.com",
+          region: "auto",
           accessKey: "5a92072e46e542f16f9ebcfee76d98b1",
           bucket: "image-color-canvas-world",
           secretKey: props.r2SecretAccessKey,
