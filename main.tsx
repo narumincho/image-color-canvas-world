@@ -20,7 +20,8 @@ export const main = async (props: {
   readonly r2SecretAccessKey: string;
 }): Promise<void> => {
   Deno.serve(async (request) => {
-    switch (new URL(request.url).pathname) {
+    const pathname = new URL(request.url).pathname;
+    switch (pathname) {
       case "/":
         return new Response(
           "<!doctype html>" + renderToString(
@@ -56,9 +57,7 @@ export const main = async (props: {
         const urls: string[] = [];
         for await (const file of r2.listObjects({ prefix: "minify/" })) {
           urls.push(
-            `https://pub-6d2556462da745a79f5d6f8720e63eb8.r2.dev/${
-              encodeURIComponent(file.key)
-            }`,
+            file.key.replace(/^minify\//, `/image/`),
           );
         }
         return new Response(JSON.stringify({ urls }), {
@@ -87,8 +86,31 @@ export const main = async (props: {
           headers: { "content-type": "application/json" },
         });
       }
-      default:
+      default: {
+        if (pathname.startsWith("/image/")) {
+          const r2 = getR2Client(props.r2SecretAccessKey);
+          const path = pathname.replace(/^\/image\//, "");
+          try {
+            return Response.redirect(
+              await r2.getPresignedUrl("GET", `minify/${path}`),
+            );
+            // const response = await (await r2.getObject(`minify/${path}`))
+            //   .arrayBuffer();
+            // return new Response(response, {
+            //   headers: { "content-type": "image/png" },
+            // });
+          } catch (e) {
+            if (
+              e instanceof Error &&
+              e.message.includes("The specified key does not exist")
+            ) {
+              return new Response("Not Found", { status: 404 });
+            }
+            throw e;
+          }
+        }
         return new Response("Not Found", { status: 404 });
+      }
     }
   });
 
