@@ -1,6 +1,8 @@
 import { h, JSX } from "https://esm.sh/preact@10.22.1?pin=v135";
-import { useState } from "https://esm.sh/preact@10.22.1/hooks?pin=v135";
-// import cloudflare r2 client library
+import {
+  useEffect,
+  useState,
+} from "https://esm.sh/preact@10.22.1/hooks?pin=v135";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -25,34 +27,6 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
     return;
   }
   console.log("domから取得できず");
-};
-
-const initialize = (
-  setFileUrlList: (v: ReadonlyArray<ImageColorAndUrlData>) => void,
-  setAppHeightPerWidth: (n: number) => void,
-): () => void => {
-  const getFiles = async (): Promise<void> => {
-    const urlList = await getFileList();
-
-    setFileUrlList(
-      await Promise.all(
-        urlList.map<Promise<ImageColorAndUrlData>>((url) => {
-          return getImageMainColor(url);
-        }),
-      ),
-    );
-
-    console.log("10秒に一回する処理!", urlList);
-  };
-  setInterval(getFiles, 10000);
-  // getFiles();
-  setTimeout(() => {
-    handleResizeApp(setAppHeightPerWidth);
-  }, 0);
-
-  console.log("初期化しました");
-
-  return getFiles;
 };
 
 const getFileList = async (): Promise<ReadonlyArray<string>> => {
@@ -236,7 +210,31 @@ export const App = (): JSX.Element => {
   });
   const [appHeightPerWidth, setAppHeightPerWidth] = useState<number>(1);
 
-  // const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
+  useEffect(() => {
+    const getFiles = async (): Promise<void> => {
+      const urlList = await getFileList();
+
+      setFileUrlList(
+        await Promise.all(
+          urlList.map<Promise<ImageColorAndUrlData>>((url) => {
+            return getImageMainColor(url);
+          }),
+        ),
+      );
+
+      console.log("10秒に一回する処理!", urlList);
+      setTimeout(getFiles, 10000);
+    };
+    getFiles();
+
+    console.log("初期化しました");
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      handleResizeApp(setAppHeightPerWidth);
+    }, 0);
+  }, []);
 
   const onInputFile: JSX.DOMAttributes<HTMLInputElement>["onInput"] = (e) => {
     const files = e.currentTarget.files;
@@ -250,8 +248,9 @@ export const App = (): JSX.Element => {
     });
     Promise.all(
       [...files].map(async (file) => {
-        return fetch("/uploadImage", {
-          method: "POST",
+        const { url } = await (await fetch("/uploadUrl")).json();
+        return fetch(url, {
+          method: "PUT",
           body: await file.arrayBuffer(),
           headers: new Headers({
             "content-type": file.type,
