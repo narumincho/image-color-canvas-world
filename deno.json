@@ -5,12 +5,13 @@
     "lib": [
       "deno.ns",
       "dom",
-      "dom.iterable"
+      "dom.iterable",
+      "deno.unstable"
     ],
     "jsxFactory": "h"
   },
   "tasks": {
-    "start": "deno run -A --watch ./startInLocal.ts",
+    "start": "deno run -A --unstable-kv --watch ./startInLocal.ts",
     "build": "deno run -A --watch=client ./build.ts"
   }
 }

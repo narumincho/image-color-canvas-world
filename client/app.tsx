@@ -56,13 +56,11 @@ const initialize = (
 };
 
 const getFileList = async (): Promise<ReadonlyArray<string>> => {
-  const response = await fetch("/imageNameList");
+  const response = await fetch("/imageUrls");
   const result = (await response.json()) as {
-    readonly fileNames: ReadonlyArray<string>;
+    readonly urls: ReadonlyArray<string>;
   };
-  return result.fileNames.map((fileName) =>
-    `https://pub-6d2556462da745a79f5d6f8720e63eb8.r2.dev/${fileName}`
-  );
+  return result.urls;
 };
 
 const cache = new Map<string, ImageColorAndUrlData>();
