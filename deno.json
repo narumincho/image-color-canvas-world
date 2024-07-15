@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": true,
+    "lib": [
+      "deno.ns",
+      "dom",
+      "dom.iterable",
+      "deno.unstable"
+    ],
+    "jsxFactory": "h"
+  },
+  "tasks": {
+    "start": "deno run -A --unstable-kv --watch ./startInLocal.ts",
+    "build": "deno run -A --watch=client ./build.ts"
+  }
+}

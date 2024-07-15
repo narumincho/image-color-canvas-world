@@ -1,14 +1,10 @@
-import { App } from "./app";
-import { render } from "solid-js/web";
+import { App } from "./app.tsx";
+import { h, render } from "https://esm.sh/preact@10.22.1?pin=v135";
 
 const rootElement = document.createElement("div");
 
-document.documentElement.style.height = "100%";
-document.documentElement.style.margin = "0";
-
-document.body.style.height = "100%";
-document.body.style.margin = "0";
-
 document.body.appendChild(rootElement);
 
-render(() => <App />, rootElement);
+render(<App />, rootElement);
+
+console.log("loaded");

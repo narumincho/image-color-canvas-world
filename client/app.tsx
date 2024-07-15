@@ -1,4 +1,8 @@
-import { For, JSX, Setter, Show, createSignal } from "solid-js";
+import { h, JSX } from "https://esm.sh/preact@10.22.1?pin=v135";
+import {
+  useEffect,
+  useState,
+} from "https://esm.sh/preact@10.22.1/hooks?pin=v135";
 
 type ImageColorAndUrlData = {
   readonly url: string;
@@ -13,7 +17,7 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       setAppHeightPerWidth(
-        entry.target.clientHeight / entry.target.clientWidth
+        entry.target.clientHeight / entry.target.clientWidth,
       );
     }
   });
@@ -25,40 +29,12 @@ const handleResizeApp = (setAppHeightPerWidth: (n: number) => void) => {
   console.log("domから取得できず");
 };
 
-const initialize = (
-  setFileUrlList: Setter<ReadonlyArray<ImageColorAndUrlData>>,
-  setAppHeightPerWidth: (n: number) => void
-): (() => void) => {
-  const getFiles = async (): Promise<void> => {
-    const urlList = await getFileList();
-
-    setFileUrlList(
-      await Promise.all(
-        urlList.map<Promise<ImageColorAndUrlData>>((url) => {
-          return getImageMainColor(url);
-        })
-      )
-    );
-
-    console.log("10秒に一回する処理!", urlList);
-  };
-  setInterval(getFiles, 10000);
-  getFiles();
-  setTimeout(() => {
-    handleResizeApp(setAppHeightPerWidth);
-  }, 0);
-
-  console.log("初期化しました");
-
-  return getFiles;
-};
-
 const getFileList = async (): Promise<ReadonlyArray<string>> => {
-  const response = await fetch("/imageNameList");
+  const response = await fetch("/imageUrls");
   const result = (await response.json()) as {
-    readonly fileNames: ReadonlyArray<string>;
+    readonly urls: ReadonlyArray<string>;
   };
-  return result.fileNames.map((fileName) => `/image/${fileName}`);
+  return result.urls;
 };
 
 const cache = new Map<string, ImageColorAndUrlData>();
@@ -72,25 +48,35 @@ const getImageMainColor = (url: string): Promise<ImageColorAndUrlData> =>
     }
     const image = new Image();
     image.onload = () => {
-      console.log("画像を読み込めました", image);
-      const canvasElement = document.createElement("canvas");
-      canvasElement.width = image.width;
-      canvasElement.height = image.height;
-      const context = canvasElement.getContext(
-        "2d"
-      ) as CanvasRenderingContext2D;
+      try {
+        console.log("画像を読み込めました", image);
+        const canvasElement = document.createElement("canvas");
+        canvasElement.width = image.width;
+        canvasElement.height = image.height;
+        const context = canvasElement.getContext(
+          "2d",
+        ) as CanvasRenderingContext2D;
 
-      context.drawImage(image, 0, 0);
-      const imageData = context.getImageData(0, 0, image.width, image.height);
-      const mainHue = imageDataGetModeHue(imageData);
-      const result = {
-        url,
-        hue: mainHue,
-        light: imageDataGetModeLight(imageData),
-        heightPerWidth: imageData.height / imageData.width,
-      };
-      cache.set(url, result);
-      resolve(result);
+        context.drawImage(image, 0, 0);
+        const imageData = context.getImageData(0, 0, image.width, image.height);
+        const mainHue = imageDataGetModeHue(imageData);
+        const result = {
+          url,
+          hue: mainHue,
+          light: imageDataGetModeLight(imageData),
+          heightPerWidth: imageData.height / imageData.width,
+        };
+        cache.set(url, result);
+        resolve(result);
+      } catch (e) {
+        console.error(e);
+        resolve({
+          url,
+          hue: 0,
+          light: 0,
+          heightPerWidth: 1,
+        });
+      }
     };
     image.src = url;
   });
@@ -125,7 +111,7 @@ const imageDataGetModeLight = (imageData: ImageData): number => {
 
 const maxMapKey = <key,>(
   map: ReadonlyMap<key, number>,
-  exclude: ReadonlySet<key>
+  exclude: ReadonlySet<key>,
 ): key | undefined => {
   return [...map].reduce<
     { readonly key: key; readonly value: number } | undefined
@@ -185,17 +171,17 @@ const rgbToLight = (color: Color): number => {
 
 type UploadingState =
   | {
-      readonly type: "uploading";
-      readonly current: number;
-      readonly all: number;
-    }
+    readonly type: "uploading";
+    readonly current: number;
+    readonly all: number;
+  }
   | {
-      readonly type: "none";
-    }
+    readonly type: "none";
+  }
   | {
-      readonly type: "complete";
-      readonly fileCount: number;
-    };
+    readonly type: "complete";
+    readonly fileCount: number;
+  };
 
 const getUploadingMessage = (uploadingState: UploadingState): string => {
   switch (uploadingState.type) {
@@ -216,15 +202,39 @@ const getUploadingMessage = (uploadingState: UploadingState): string => {
 };
 
 export const App = (): JSX.Element => {
-  const [fileNameUrl, setFileUrlList] = createSignal<
+  const [fileNameUrl, setFileUrlList] = useState<
     ReadonlyArray<ImageColorAndUrlData>
   >([]);
-  const [uploadingState, setUploadingState] = createSignal<UploadingState>({
+  const [uploadingState, setUploadingState] = useState<UploadingState>({
     type: "none",
   });
-  const [appHeightPerWidth, setAppHeightPerWidth] = createSignal<number>(1);
+  const [appHeightPerWidth, setAppHeightPerWidth] = useState<number>(1);
 
-  const getFiles = initialize(setFileUrlList, setAppHeightPerWidth);
+  useEffect(() => {
+    const getFiles = async (): Promise<void> => {
+      const urlList = await getFileList();
+
+      setFileUrlList(
+        await Promise.all(
+          urlList.map<Promise<ImageColorAndUrlData>>((url) => {
+            return getImageMainColor(url);
+          }),
+        ),
+      );
+
+      console.log("10秒に一回する処理!", urlList);
+      setTimeout(getFiles, 10000);
+    };
+    getFiles();
+
+    console.log("初期化しました");
+  }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      handleResizeApp(setAppHeightPerWidth);
+    }, 0);
+  }, []);
 
   const onInputFile: JSX.DOMAttributes<HTMLInputElement>["onInput"] = (e) => {
     const files = e.currentTarget.files;
@@ -238,8 +248,9 @@ export const App = (): JSX.Element => {
     });
     Promise.all(
       [...files].map(async (file) => {
-        return fetch("/uploadImage", {
-          method: "POST",
+        const { url } = await (await fetch("/uploadUrl")).json();
+        return fetch(url, {
+          method: "PUT",
           body: await file.arrayBuffer(),
           headers: new Headers({
             "content-type": file.type,
@@ -258,70 +269,69 @@ export const App = (): JSX.Element => {
 
           console.log("ok");
         });
-      })
+      }),
     ).then(() => {
       setUploadingState((before) => ({
         type: "complete",
         fileCount: before.type === "uploading" ? before.all : -1,
       }));
-      getFiles();
+      // getFiles();
     });
   };
 
   const calcY = (light: number, height: number): number => {
-    return (1 - light) * 360 * appHeightPerWidth() - height / 2;
+    return (1 - light) * 360 * appHeightPerWidth - height / 2;
   };
 
   return (
     <div class="container" id={appDomId}>
       <svg
-        viewBox={"0 0 360 " + (360 * appHeightPerWidth()).toString()}
+        viewBox={"0 0 360 " + (360 * appHeightPerWidth).toString()}
         class="mainView"
       >
-        <For each={fileNameUrl()}>
-          {(item) => {
-            const height = 20;
-            const width = 20 / item.heightPerWidth;
-            const x = item.hue - width / 2;
-            return (
-              <g>
-                <rect
-                  fill={`hsl(${item.hue}, 80%, ${Math.floor(
-                    item.light * 100
-                  )}%)`}
-                  x={x - 1}
-                  y={calcY(item.light, height) - 1}
-                  width={width + 2}
-                  height={height + 2}
-                />
-                <image
-                  href={item.url}
-                  x={x}
-                  y={calcY(item.light, height)}
-                  width={width}
-                  height={height}
-                />
-              </g>
-            );
-          }}
-        </For>
+        {fileNameUrl.map((item) => {
+          const height = 20;
+          const width = 20 / item.heightPerWidth;
+          const x = item.hue - width / 2;
+          return (
+            <g>
+              <rect
+                fill={`hsl(${item.hue}, 80%, ${
+                  Math.floor(
+                    item.light * 100,
+                  )
+                }%)`}
+                x={x - 1}
+                y={calcY(item.light, height) - 1}
+                width={width + 2}
+                height={height + 2}
+              />
+              <image
+                href={item.url}
+                x={x}
+                y={calcY(item.light, height)}
+                width={width}
+                height={height}
+              />
+            </g>
+          );
+        })}
       </svg>
       <div class="fileInputContainer">
-        <Show
-          when={
-            uploadingState().type !== "uploading" &&
+        {uploadingState.type !== "uploading" &&
             !window.location.hash.includes("hide")
-          }
-        >
-          <input
-            class="fileInput"
-            type="file"
-            accept="image/png, image/jpeg"
-            multiple
-            onInput={onInputFile}
-          />
-        </Show>
-        <div class="message">{getUploadingMessage(uploadingState())}</div>
+          ? (
+            <input
+              class="fileInput"
+              type="file"
+              accept="image/png, image/jpeg"
+              multiple
+              onInput={onInputFile}
+            />
+          )
+          : undefined}
+
+        <div class="message">{getUploadingMessage(uploadingState)}</div>
       </div>
     </div>
   );
