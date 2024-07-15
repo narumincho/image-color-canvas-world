@@ -65,40 +65,68 @@ export const main = async (props: {
         });
       }
       case "/uploadUrl": {
+        // CORS がうまく行かなかったので
+        // const r2 = getR2Client(props.r2SecretAccessKey);
+
+        // const path = `upload/${crypto.randomUUID()}`;
+        // const url = await r2.getPresignedUrl(
+        //   "PUT",
+        //   path,
+        //   { expirySeconds: 60 },
+        // );
+
+        // await kv.enqueue(
+        //   {
+        //     type: "checkUpload",
+        //     path,
+        //     expiresAt: new Date().getTime() + 1000 * 60,
+        //   } satisfies Message,
+        // );
+
+        // return new Response(JSON.stringify({ url }), {
+        //   headers: { "content-type": "application/json" },
+        // });
+
+        // 直接アップロードする
+        return new Response(
+          JSON.stringify({ url: "/upload" }),
+          {
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }
+      case "/upload": {
         const r2 = getR2Client(props.r2SecretAccessKey);
 
-        const path = `upload/${crypto.randomUUID()}`;
-        const url = await r2.getPresignedUrl(
-          "PUT",
-          path,
-          { expirySeconds: 60 },
+        const body = await request.arrayBuffer();
+        const newImage = await sharp(body).resize(undefined, 64).png()
+          .toBuffer();
+        const imageHash = encodeHex(
+          await crypto.subtle.digest("SHA-256", newImage),
         );
-
-        await kv.enqueue(
-          {
-            type: "checkUpload",
-            path,
-            expiresAt: new Date().getTime() + 1000 * 60,
-          } satisfies Message,
-        );
-
-        return new Response(JSON.stringify({ url }), {
-          headers: { "content-type": "application/json" },
+        console.log("upload direct", imageHash);
+        await r2.putObject(`minify/${imageHash}`, newImage, {
+          metadata: { "Content-Type": "image/png" },
         });
+
+        return new Response("OK", { status: 200 });
       }
       default: {
         if (pathname.startsWith("/image/")) {
           const r2 = getR2Client(props.r2SecretAccessKey);
           const path = pathname.replace(/^\/image\//, "");
           try {
-            return Response.redirect(
-              await r2.getPresignedUrl("GET", `minify/${path}`),
-            );
-            // const response = await (await r2.getObject(`minify/${path}`))
-            //   .arrayBuffer();
-            // return new Response(response, {
-            //   headers: { "content-type": "image/png" },
-            // });
+            // Cloudflare R2 の CORS 設定がなぜかうまく行かなかったので
+            // return Response.redirect(
+            //   await r2.getPresignedUrl("GET", `minify/${path}`),
+            // );
+
+            // 仲介する形式にする
+            const response = await (await r2.getObject(`minify/${path}`))
+              .arrayBuffer();
+            return new Response(response, {
+              headers: { "content-type": "image/png" },
+            });
           } catch (e) {
             if (
               e instanceof Error &&
