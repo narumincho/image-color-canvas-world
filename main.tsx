@@ -3,8 +3,12 @@ import { h } from "https://esm.sh/preact@10.22.1?pin=v135";
 import dist from "./dist.json" with { type: "json" };
 import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client";
 import { delay } from "jsr:@std/async/delay";
-import sharp from "npm:sharp";
 import { encodeHex } from "jsr:@std/encoding@^0.223.0/hex";
+import {
+  ImageMagick,
+  initialize,
+  MagickFormat,
+} from "https://deno.land/x/imagemagick_deno@0.0.26/mod.ts";
 
 const getR2Client = (r2SecretAccessKey: string): S3Client => {
   return new S3Client({
@@ -96,15 +100,23 @@ export const main = async (props: {
         );
       }
       case "/upload": {
-        const r2 = getR2Client(props.r2SecretAccessKey);
+        await initialize();
 
         const body = await request.arrayBuffer();
-        const newImage = await sharp(body).resize(undefined, 64).png()
-          .toBuffer();
+        const newImage = ImageMagick.read(
+          new Uint8Array(body),
+          (img) => {
+            img.resize(64, 64);
+            return img.write(MagickFormat.Png, (png) => png);
+          },
+        );
+
         const imageHash = encodeHex(
           await crypto.subtle.digest("SHA-256", newImage),
         );
         console.log("upload direct", imageHash);
+
+        const r2 = getR2Client(props.r2SecretAccessKey);
         await r2.putObject(`minify/${imageHash}`, newImage, {
           metadata: { "Content-Type": "image/png" },
         });
@@ -154,8 +166,16 @@ export const main = async (props: {
     const r2 = getR2Client(props.r2SecretAccessKey);
     try {
       const response = await (await r2.getObject(message.path)).arrayBuffer();
-      const newImage = await sharp(response).resize(undefined, 64).png()
-        .toBuffer();
+      await initialize();
+
+      const newImage = ImageMagick.read(
+        new Uint8Array(response),
+        (img) => {
+          img.resize(64, 64);
+          return img.write(MagickFormat.Png, (png) => png);
+        },
+      );
+
       const imageHash = encodeHex(
         await crypto.subtle.digest("SHA-256", newImage),
       );
