@@ -2,9 +2,8 @@ import { renderToString } from "npm:preact-render-to-string@6.5.6";
 import { h } from "https://esm.sh/preact@10.22.1?pin=v135";
 import dist from "./dist.json" with { type: "json" };
 import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client@0.7.6";
-import { delay } from "jsr:@std/async@1.0.0/delay";
 import { encodeHex } from "jsr:@std/encoding@1.0.1/hex";
-import { decode, Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+// import { decode, Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const getR2Client = (r2SecretAccessKey: string): S3Client => {
   return new S3Client({
@@ -190,11 +189,12 @@ type Message = {
 };
 
 const imageResize = async (image: Uint8Array): Promise<Uint8Array> => {
-  const newImage = (await decode(
-    image,
-  )).resize(64, Image.RESIZE_AUTO);
-  if (!newImage) {
-    throw new Error("画像のリサイズに失敗しました");
-  }
-  return await newImage.encode();
+  return image;
+  // const newImage = (await decode(
+  //   image,
+  // )).resize(64, Image.RESIZE_AUTO);
+  // if (!newImage) {
+  //   throw new Error("画像のリサイズに失敗しました");
+  // }
+  // return await newImage.encode();
 };
