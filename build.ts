@@ -1,5 +1,5 @@
 import { encodeHex } from "jsr:@std/encoding/hex";
-import { bundle } from "jsr:@deno/emit";
+import { bundle } from "jsr:@deno/emit@0.43.1";
 
 const clientCode = (await bundle("./client/main.tsx", {
   compilerOptions: {

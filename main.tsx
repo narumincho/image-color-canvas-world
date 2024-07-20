@@ -1,9 +1,9 @@
-import { renderToString } from "npm:preact-render-to-string";
+import { renderToString } from "npm:preact-render-to-string@6.5.6";
 import { h } from "https://esm.sh/preact@10.22.1?pin=v135";
 import dist from "./dist.json" with { type: "json" };
-import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client";
-import { delay } from "jsr:@std/async/delay";
-import { encodeHex } from "jsr:@std/encoding@^0.223.0/hex";
+import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client@0.7.6";
+import { delay } from "jsr:@std/async@1.0.0/delay";
+import { encodeHex } from "jsr:@std/encoding@1.0.1/hex";
 import {
   ImageMagick,
   initialize,
