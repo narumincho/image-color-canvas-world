@@ -4,11 +4,7 @@ import dist from "./dist.json" with { type: "json" };
 import { S3Client } from "jsr:@bradenmacdonald/s3-lite-client@0.7.6";
 import { delay } from "jsr:@std/async@1.0.0/delay";
 import { encodeHex } from "jsr:@std/encoding@1.0.1/hex";
-import {
-  ImageMagick,
-  initialize,
-  MagickFormat,
-} from "https://deno.land/x/imagemagick_deno@0.0.26/mod.ts";
+import { decode, Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const getR2Client = (r2SecretAccessKey: string): S3Client => {
   return new S3Client({
@@ -100,16 +96,8 @@ export const main = async (props: {
         );
       }
       case "/upload": {
-        await initialize();
-
         const body = await request.arrayBuffer();
-        const newImage = ImageMagick.read(
-          new Uint8Array(body),
-          (img) => {
-            img.resize(64, 64);
-            return img.write(MagickFormat.Png, (png) => png);
-          },
-        );
+        const newImage = await imageResize(new Uint8Array(body));
 
         const imageHash = encodeHex(
           await crypto.subtle.digest("SHA-256", newImage),
@@ -154,56 +142,59 @@ export const main = async (props: {
     }
   });
 
-  const kv = await Deno.openKv();
+  // const kv = await Deno.openKv();
 
-  kv.listenQueue(async (message: Message) => {
-    console.log("message", message);
-    if (message.expiresAt < new Date().getTime()) {
-      console.log("expired");
-      return;
-    }
-    await delay(2000);
-    const r2 = getR2Client(props.r2SecretAccessKey);
-    try {
-      const response = await (await r2.getObject(message.path)).arrayBuffer();
-      await initialize();
+  // kv.listenQueue(async (message: Message) => {
+  //   console.log("message", message);
+  //   if (message.expiresAt < new Date().getTime()) {
+  //     console.log("expired");
+  //     return;
+  //   }
+  //   await delay(2000);
+  //   const r2 = getR2Client(props.r2SecretAccessKey);
+  //   try {
+  //     const response = await (await r2.getObject(message.path)).arrayBuffer();
 
-      const newImage = ImageMagick.read(
-        new Uint8Array(response),
-        (img) => {
-          img.resize(64, 64);
-          return img.write(MagickFormat.Png, (png) => png);
-        },
-      );
+  //     const newImage = await imageResize(new Uint8Array(response));
 
-      const imageHash = encodeHex(
-        await crypto.subtle.digest("SHA-256", newImage),
-      );
-      console.log("imageHash", imageHash);
-      await r2.putObject(`minify/${imageHash}`, newImage, {
-        metadata: { "Content-Type": "image/png" },
-      });
-    } catch (e) {
-      if (
-        e instanceof Error &&
-        e.message.includes("The specified key does not exist")
-      ) {
-        await kv.enqueue(
-          {
-            type: "checkUpload",
-            path: message.path,
-            expiresAt: message.expiresAt,
-          } satisfies Message,
-        );
-      } else {
-        throw e;
-      }
-    }
-  });
+  //     const imageHash = encodeHex(
+  //       await crypto.subtle.digest("SHA-256", newImage),
+  //     );
+  //     console.log("imageHash", imageHash);
+  //     await r2.putObject(`minify/${imageHash}`, newImage, {
+  //       metadata: { "Content-Type": "image/png" },
+  //     });
+  //   } catch (e) {
+  //     if (
+  //       e instanceof Error &&
+  //       e.message.includes("The specified key does not exist")
+  //     ) {
+  //       await kv.enqueue(
+  //         {
+  //           type: "checkUpload",
+  //           path: message.path,
+  //           expiresAt: message.expiresAt,
+  //         } satisfies Message,
+  //       );
+  //     } else {
+  //       throw e;
+  //     }
+  //   }
+  // });
 };
 
 type Message = {
   readonly type: "checkUpload";
   readonly path: string;
   readonly expiresAt: number;
+};
+
+const imageResize = async (image: Uint8Array): Promise<Uint8Array> => {
+  const newImage = (await decode(
+    image,
+  )).resize(64, Image.RESIZE_AUTO);
+  if (!newImage) {
+    throw new Error("画像のリサイズに失敗しました");
+  }
+  return await newImage.encode();
 };
