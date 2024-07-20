@@ -18,11 +18,6 @@ const getR2Client = (r2SecretAccessKey: string): S3Client => {
 export const main = async (props: {
   readonly r2SecretAccessKey: string;
 }): Promise<void> => {
-  Deno.serve(() => {
-    return new Response("もうなんもしない", {
-      headers: { "content-type": "text/plain;charset=UTF-8" },
-    });
-  });
   Deno.serve(async (request) => {
     const pathname = new URL(request.url).pathname;
     switch (pathname) {
